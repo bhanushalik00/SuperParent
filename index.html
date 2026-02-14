@@ -55,17 +55,17 @@
             opacity: .2;
             transition: 0s;
         }
-        ::-webkit-scrollbar {
-            display: none;
-        }
+        ::-webkit-scrollbar { display: none; }
     </style>
-<script type="importmap">
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "htm": "https://esm.sh/htm@3.1.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0"
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
@@ -73,35 +73,15 @@
 <body class="text-slate-900">
     <div id="root"></div>
     
-    <script>
-        // CRITICAL FOR GITHUB PAGES: Ensure we have a trailing slash so relative paths resolve to the subfolder
-        (function() {
-            var path = window.location.pathname;
-            if (path.length > 1 && !path.endsWith('/') && !path.split('/').pop().includes('.')) {
-                window.location.replace(window.location.href + '/');
-            }
-        })();
-    </script>
-
-    <!-- Main Entry Point: Use a relative path that works with the trailing slash -->
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="./index.js"></script>
 
     <script>
-        // Robust Service Worker registration for subdirectories
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // By using 'sw.js' (no ./), it looks in the current "directory" defined by the URL
-                // If the URL is .../SuperParent/, the directory is .../SuperParent/
-                navigator.serviceWorker.register('sw.js', { scope: './' })
-                    .then(reg => console.log('SW registered successfully with scope:', reg.scope))
-                    .catch(err => {
-                        console.error('SW registration failed:', err);
-                        // Fallback attempt: Try to calculate the base path manually
-                        const base = window.location.pathname.split('/').slice(0, -1).join('/') + '/';
-                        navigator.serviceWorker.register(base + 'sw.js', { scope: base })
-                            .then(r => console.log('SW fallback registered'))
-                            .catch(e => console.error('All SW attempts failed'));
-                    });
+                // Registering SW relative to the current folder
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW failed:', err));
             });
         }
     </script>
