@@ -81,11 +81,23 @@
 </head>
 <body class="text-slate-900">
     <div id="root"></div>
+    
+    <!-- Main Entry Point -->
+    <script type="module" src="./index.tsx"></script>
+
     <script>
+        // Enhanced Service Worker registration for subdirectories
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Use relative path for GitHub Pages subdirectories
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+                // Get the current path to ensure we register the SW in the correct subdirectory
+                const scriptPath = window.location.pathname.endsWith('/') 
+                    ? './sw.js' 
+                    : window.location.pathname.split('/').pop() + '/sw.js';
+                
+                // Fallback to a simple relative registration if the above logic is too complex
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then(reg => console.log('SW registered with scope:', reg.scope))
+                    .catch(err => console.log('SW registration failed:', err));
             });
         }
     </script>
