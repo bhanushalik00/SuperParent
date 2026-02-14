@@ -30,15 +30,6 @@
             background-color: var(--m3-surface);
             user-select: none;
         }
-        /* Native-like bottom sheet animation */
-        .bottom-sheet-enter {
-            transform: translateY(100%);
-        }
-        .bottom-sheet-enter-active {
-            transform: translateY(0);
-            transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
-        }
-        /* Ripple effect simulation */
         .ripple {
             position: relative;
             overflow: hidden;
@@ -82,22 +73,35 @@
 <body class="text-slate-900">
     <div id="root"></div>
     
-    <!-- Main Entry Point -->
-    <script type="module" src="./index.tsx"></script>
+    <script>
+        // CRITICAL FOR GITHUB PAGES: Ensure we have a trailing slash so relative paths resolve to the subfolder
+        (function() {
+            var path = window.location.pathname;
+            if (path.length > 1 && !path.endsWith('/') && !path.split('/').pop().includes('.')) {
+                window.location.replace(window.location.href + '/');
+            }
+        })();
+    </script>
+
+    <!-- Main Entry Point: Use a relative path that works with the trailing slash -->
+    <script type="module" src="index.tsx"></script>
 
     <script>
-        // Enhanced Service Worker registration for subdirectories
+        // Robust Service Worker registration for subdirectories
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Get the current path to ensure we register the SW in the correct subdirectory
-                const scriptPath = window.location.pathname.endsWith('/') 
-                    ? './sw.js' 
-                    : window.location.pathname.split('/').pop() + '/sw.js';
-                
-                // Fallback to a simple relative registration if the above logic is too complex
-                navigator.serviceWorker.register('./sw.js', { scope: './' })
-                    .then(reg => console.log('SW registered with scope:', reg.scope))
-                    .catch(err => console.log('SW registration failed:', err));
+                // By using 'sw.js' (no ./), it looks in the current "directory" defined by the URL
+                // If the URL is .../SuperParent/, the directory is .../SuperParent/
+                navigator.serviceWorker.register('sw.js', { scope: './' })
+                    .then(reg => console.log('SW registered successfully with scope:', reg.scope))
+                    .catch(err => {
+                        console.error('SW registration failed:', err);
+                        // Fallback attempt: Try to calculate the base path manually
+                        const base = window.location.pathname.split('/').slice(0, -1).join('/') + '/';
+                        navigator.serviceWorker.register(base + 'sw.js', { scope: base })
+                            .then(r => console.log('SW fallback registered'))
+                            .catch(e => console.error('All SW attempts failed'));
+                    });
             });
         }
     </script>
