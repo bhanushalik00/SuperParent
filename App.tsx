@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Settings, Home, List, Trophy, Lock, UserPlus, User, CheckCircle2, ChevronRight, Star, ArrowRight, History, Flame, Calendar, Clock, X, Trash2, Key, Download, Rocket, ShieldCheck, Globe, Server, Cpu } from 'lucide-react';
+import { Plus, Settings, Home, List, Trophy, Lock, UserPlus, User, CheckCircle2, ChevronRight, Star, ArrowRight, History, Flame, Calendar, Clock, X, Trash2, Key, Download, Rocket, ShieldCheck, Globe, Server, Cpu, Github } from 'lucide-react';
 import { Profile, Role, Task, TaskType, HistoryItem, MascotState, ProfileTaskStats } from './types';
 import { storage } from './services/storage';
 import { PIN_KEY, PROFILES_KEY, TASKS_KEY, HISTORY_KEY, STREAKS_KEY, COLORS, AVATARS, DEFAULT_TASKS } from './constants';
@@ -483,8 +483,8 @@ const App: React.FC = () => {
                  <div className="flex items-center gap-4">
                    <div className="p-3 bg-white/10 rounded-2xl"><Rocket size={24} className="text-[#d0bcff]" /></div>
                    <div className="flex-1">
-                     <h3 className="font-bold">Play Store (No-Hosting) Guide</h3>
-                     <p className="text-xs text-[#d0bcff]">Launch without monthly costs</p>
+                     <h3 className="font-bold">Google Play Launch Checklist</h3>
+                     <p className="text-xs text-[#d0bcff]">Zero-cost hosting instructions</p>
                    </div>
                    <ChevronRight size={20} className="opacity-50" />
                  </div>
@@ -521,8 +521,8 @@ const App: React.FC = () => {
               </M3Card>
 
               <div className="pt-10 text-center opacity-40">
-                <p className="text-sm font-medium">SuperParent Tracker v1.5</p>
-                <p className="text-[10px] uppercase font-bold tracking-widest mt-2">Zero-Hosting Architecture Ready</p>
+                <p className="text-sm font-medium">SuperParent Tracker v1.6</p>
+                <p className="text-[10px] uppercase font-bold tracking-widest mt-2">GitHub Pages & TWA Verification Ready</p>
               </div>
             </div>
           </div>
@@ -659,46 +659,54 @@ const App: React.FC = () => {
       <M3BottomSheet 
         isOpen={isLaunchGuideOpen} 
         onClose={() => setIsLaunchGuideOpen(false)} 
-        title="Zero-Hosting Launch Plan"
+        title="Zero-Cost Launch Plan"
       >
         <div className="space-y-6 pb-6">
-           <div className="bg-[#1d192b] p-4 rounded-2xl border border-white/10 text-white">
-              <h4 className="font-bold text-base flex items-center gap-2 mb-2"><Cpu size={18} className="text-[#d0bcff]" /> Local Bundling</h4>
-              <p className="text-xs text-[#d0bcff] leading-relaxed">Instead of a website, we package all files into the APK. This is <strong>100% free</strong> (after Google's one-time developer fee).</p>
+           <div className="bg-[#1d192b] p-5 rounded-2xl border border-white/10 text-white">
+              <h4 className="font-bold text-base flex items-center gap-2 mb-2"><Github size={18} className="text-[#d0bcff]" /> GitHub Pages (Free)</h4>
+              <p className="text-xs text-[#d0bcff] leading-relaxed">The fastest and 100% free way to host your app. Use this as your Play Store source URL.</p>
            </div>
            
            <div className="space-y-4">
               <div className="bg-white p-5 rounded-2xl border border-[#e7e0eb] flex gap-4 items-start">
-                 <div className="bg-[#6750a4]/10 p-2 rounded-lg"><Cpu size={20} className="text-[#6750a4]" /></div>
-                 <div>
-                    <h4 className="font-bold text-sm">1. Install Capacitor CLI</h4>
-                    <p className="text-xs text-[#49454f] mt-1">Run <code>npm install @capacitor/cli @capacitor/android</code> in your project folder.</p>
-                 </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-[#e7e0eb] flex gap-4 items-start">
-                 <div className="bg-[#6750a4]/10 p-2 rounded-lg"><Globe size={20} className="text-[#6750a4]" /></div>
-                 <div>
-                    <h4 className="font-bold text-sm">2. Free Hosting Alternative</h4>
-                    <p className="text-xs text-[#49454f] mt-1">If you want a verified app, <strong>Vercel</strong> and <strong>GitHub Pages</strong> offer 100% free hosting forever for small apps.</p>
-                 </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-[#e7e0eb] flex gap-4 items-start">
                  <div className="bg-[#6750a4]/10 p-2 rounded-lg"><Rocket size={20} className="text-[#6750a4]" /></div>
                  <div>
-                    <h4 className="font-bold text-sm">3. Build the .AAB</h4>
-                    <p className="text-xs text-[#49454f] mt-1">Open your project in <strong>Android Studio</strong>, go to <code>Build > Generate Signed Bundle</code>. No server needed!</p>
+                    <h4 className="font-bold text-sm">1. Create Repo</h4>
+                    <p className="text-xs text-[#49454f] mt-1">Create a repo named <code>reward-tracker</code> on GitHub and upload all files from this project.</p>
+                 </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-[#e7e0eb] flex gap-4 items-start">
+                 <div className="bg-[#6750a4]/10 p-2 rounded-lg"><Settings size={20} className="text-[#6750a4]" /></div>
+                 <div>
+                    <h4 className="font-bold text-sm">2. Enable Pages</h4>
+                    <p className="text-xs text-[#49454f] mt-1">Go to <strong>Settings > Pages</strong>. Select <code>main</code> branch and <code>root</code> folder. Save.</p>
+                 </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-[#e7e0eb] flex gap-4 items-start">
+                 <div className="bg-[#6750a4]/10 p-2 rounded-lg"><ShieldCheck size={20} className="text-[#6750a4]" /></div>
+                 <div>
+                    <h4 className="font-bold text-sm">3. Verify .well-known</h4>
+                    <p className="text-xs text-[#49454f] mt-1">GitHub handles the <code>.well-known</code> folder perfectly. Just ensure <code>assetlinks.json</code> is inside it in your repo.</p>
+                 </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-[#e7e0eb] flex gap-4 items-start">
+                 <div className="bg-[#6750a4]/10 p-2 rounded-lg"><Cpu size={20} className="text-[#6750a4]" /></div>
+                 <div>
+                    <h4 className="font-bold text-sm">4. Wrap to Android</h4>
+                    <p className="text-xs text-[#49454f] mt-1">Use <strong>Google Bubblewrap</strong> to point to your new GitHub URL. It will generate your Store APK!</p>
                  </div>
               </div>
            </div>
 
            <div className="bg-[#e8def8] p-5 rounded-2xl border border-[#d0bcff]">
-              <h4 className="font-bold text-[#1d192b] text-sm flex items-center gap-2"><Rocket size={16} /> Important Note</h4>
-              <p className="text-xs text-[#49454f] mt-1 leading-relaxed">Google charges a one-time <strong>$25 fee</strong> to open a developer account. This is paid to Google, not for hosting. Once paid, you can publish unlimited apps for free!</p>
+              <h4 className="font-bold text-[#1d192b] text-sm flex items-center gap-2"><Rocket size={16} /> Final Link</h4>
+              <p className="text-xs text-[#49454f] mt-1 leading-relaxed">Once enabled, your app live link will look like: <code>https://username.github.io/reward-tracker/</code>. This is what Google will use!</p>
            </div>
            
-           <button onClick={() => setIsLaunchGuideOpen(false)} className="w-full bg-[#6750a4] text-white font-bold py-4 rounded-full shadow-md">Start Building!</button>
+           <button onClick={() => setIsLaunchGuideOpen(false)} className="w-full bg-[#6750a4] text-white font-bold py-4 rounded-full shadow-md">Get Started on GitHub</button>
         </div>
       </M3BottomSheet>
 

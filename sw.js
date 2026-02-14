@@ -1,9 +1,9 @@
 
-const CACHE_NAME = 'superparent-v2';
+const CACHE_NAME = 'superparent-v3';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
+  './',
+  './index.html',
+  './manifest.json',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap'
 ];
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).then((fetchResponse) => {
         return caches.open(CACHE_NAME).then((cache) => {
-          // Cache new assets on the fly if needed
+          // Cache new assets on the fly if they are from a trusted source
           if (event.request.url.startsWith('http')) {
             cache.put(event.request, fetchResponse.clone());
           }
@@ -41,8 +41,8 @@ self.addEventListener('fetch', (event) => {
         });
       });
     }).catch(() => {
-      // Fallback if network and cache both fail
-      return caches.match('/index.html');
+      // Fallback to index.html for SPA-like behavior in relative paths
+      return caches.match('./index.html');
     })
   );
 });
