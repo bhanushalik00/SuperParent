@@ -4,12 +4,12 @@ import htm from 'htm';
 import { 
   Plus, Settings, Home, List, Trophy, Lock, UserPlus, 
   User, CheckCircle2, ChevronRight, Star, History, 
-  Flame, Rocket, ShieldCheck, Cpu, Github, X, Trash2, Key, Download 
+  Flame, Rocket, ShieldCheck, X, Trash2, Key, Download 
 } from 'lucide-react';
 
 const html = htm.bind(React.createElement);
 
-// --- Constants & Types (Simplified) ---
+// --- Constants ---
 const Role = { PARENT: 'PARENT', CHILD: 'CHILD' };
 const TaskType = { INDIVIDUAL: 'INDIVIDUAL', JOINT: 'JOINT' };
 const PIN_KEY = 'superparent_pin';
@@ -39,7 +39,7 @@ const triggerHaptic = (pattern = 10) => {
   if (navigator.vibrate) navigator.vibrate(pattern);
 };
 
-// --- Components ---
+// --- Sub-components ---
 
 const Mascot = ({ state, onAnimationEnd }) => {
   const [displayText, setDisplayText] = useState("Hi Super Parent!");
@@ -142,6 +142,8 @@ const M3BottomSheet = ({ isOpen, onClose, title, children }) => {
   `;
 };
 
+// --- Main App ---
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -150,6 +152,7 @@ export default function App() {
   const [history, setHistory] = useState(() => storage.get(HISTORY_KEY, []));
   const [streaks, setStreaks] = useState(() => storage.get(STREAKS_KEY, {}));
   const [mascotState, setMascotState] = useState('IDLE');
+  
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -167,13 +170,20 @@ export default function App() {
 
     triggerHaptic([40, 30, 40]);
     setHistory([{ id: Date.now().toString(), taskId, taskTitle: task.title, profileId, timestamp: Date.now(), starsEarned: task.starValue }, ...history]);
-    setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, stars: p.stars + task.starValue } : p));
+    setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, stars: (p.stars || 0) + task.starValue } : p));
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completedBy: [...t.completedBy, profileId] } : t));
     setMascotState(task.type === TaskType.JOINT ? 'JOINT_SUCCESS' : profile.role === Role.PARENT ? 'PARENT_SUCCESS' : 'CHILD_SUCCESS');
   };
 
-  const parentStars = profiles.filter(p => p.role === Role.PARENT).reduce((s, p) => s + p.stars, 0);
-  const childStars = profiles.filter(p => p.role === Role.CHILD).reduce((s, p) => s + p.stars, 0);
+  const handleAddProfile = (name, role, avatar) => {
+    const newProfile = { id: Date.now().toString(), name, role, avatar, stars: 0 };
+    setProfiles([...profiles, newProfile]);
+    setIsProfileModalOpen(false);
+    triggerHaptic(20);
+  };
+
+  const parentStars = profiles.filter(p => p.role === Role.PARENT).reduce((s, p) => s + (p.stars || 0), 0);
+  const childStars = profiles.filter(p => p.role === Role.CHILD).reduce((s, p) => s + (p.stars || 0), 0);
 
   if (!isAuthenticated) return html`<${PinScreen} onUnlock=${() => setIsAuthenticated(true)} />`;
 
@@ -183,94 +193,205 @@ export default function App() {
         <header className="pt-14 pb-8 flex justify-between items-start">
           <div>
             <h1 className="text-[32px] font-normal text-[#1c1b1f]">SuperParent</h1>
-            <p className="text-[#49454f] text-sm mt-1">Family Rewards Hub</p>
+            <p className="text-[#49454f] text-sm mt-1 font-medium">Rewards Dashboard</p>
           </div>
-          <button onClick=${() => setActiveTab('settings')} className="p-3 bg-[#e7e0eb] rounded-full"><${Settings} size=${20} /></button>
+          <button onClick=${() => setActiveTab('settings')} className="p-3 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Settings} size=${20} /></button>
         </header>
 
         ${activeTab === 'dashboard' && html`
-          <div>
+          <div className="space-y-6">
             <${Mascot} state=${mascotState} onAnimationEnd=${() => setMascotState('IDLE')} />
-            <div className="mt-8 grid grid-cols-2 gap-4">
+            
+            <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#6750a4] rounded-[32px] p-6 text-white shadow-lg">
-                <div className="text-[11px] font-bold uppercase mb-2">Parents</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-2">Parents</div>
                 <div className="text-3xl font-medium flex items-center gap-2">${parentStars} <${Star} size=${24} fill="gold" /></div>
               </div>
               <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#6750a4]/10">
-                <div className="text-[11px] font-bold uppercase mb-2 text-[#6750a4]">Kids</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6750a4] opacity-80 mb-2">Kids</div>
                 <div className="text-3xl font-medium flex items-center gap-2">${childStars} <${Star} size=${24} fill="#6750a4" /></div>
               </div>
             </div>
-            <div className="mt-6 p-6 bg-[#d7effb] rounded-[28px] flex items-center justify-between">
+
+            <div className="bg-[#d7effb] p-7 rounded-[28px] flex items-center justify-between">
               <div>
-                <h3 className="font-bold">Goal Status</h3>
-                <p className="text-sm opacity-70">${childStars >= parentStars ? "Kids are winning! 🚀" : "Parents lead by example! 💪"}</p>
+                <h3 className="font-bold text-[#001e2e]">Family Goal</h3>
+                <p className="text-sm text-[#001e2e]/70 mt-1">${childStars >= parentStars ? "Kids are taking the lead! 🚀" : "Parents setting the pace! 💪"}</p>
               </div>
-              <${Trophy} size=${32} className="opacity-40" />
+              <${Trophy} size=${36} className="text-[#001e2e] opacity-30" />
             </div>
           </div>
         `}
 
         ${activeTab === 'tasks' && html`
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4">
             ${tasks.map(task => html`
               <div key=${task.id} className="bg-[#f7f2fa] rounded-[28px] p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <span className="text-[10px] font-bold uppercase bg-white/50 px-2 py-1 rounded-full">${task.type}</span>
-                    <h3 className="text-lg font-bold mt-1">${task.title}</h3>
+                    <span className="text-[10px] font-bold uppercase tracking-widest bg-white/60 px-2 py-1 rounded-full">${task.type}</span>
+                    <h3 className="text-xl font-bold mt-2">${task.title}</h3>
+                    <p className="text-sm text-slate-500 mt-1">${task.description}</p>
                   </div>
-                  <div className="text-xl font-bold text-[#6750a4]">+${task.starValue} ★</div>
+                  <div className="text-xl font-bold text-[#6750a4] flex items-center gap-1">+${task.starValue} <${Star} size=${16} fill="#6750a4" /></div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   ${profiles.map(p => {
                     const done = task.completedBy.includes(p.id);
                     if (task.type === TaskType.INDIVIDUAL && p.role !== Role.CHILD) return null;
                     return html`
-                      <button onClick=${() => handleTaskCompletion(task.id, p.id)} disabled=${done}
-                        className=${`px-4 py-2 rounded-full text-sm font-medium transition-all ${done ? 'bg-gray-200 text-gray-500' : 'bg-[#6750a4] text-white'}`}>
-                        ${p.avatar} ${p.name} ${done ? '✓' : ''}
+                      <button 
+                        key=${p.id}
+                        onClick=${() => handleTaskCompletion(task.id, p.id)} 
+                        disabled=${done}
+                        className=${`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${done ? 'bg-gray-200 text-gray-500' : 'bg-[#6750a4] text-white shadow-md active:scale-95'}`}
+                      >
+                        <span className="text-lg">${done ? html`<${CheckCircle2} size=${16} />` : p.avatar}</span>
+                        ${p.name}
                       </button>
                     `;
                   })}
                 </div>
               </div>
             `)}
+            <button 
+              onClick=${() => setIsTaskModalOpen(true)}
+              className="fixed bottom-32 right-6 w-16 h-16 bg-[#d3e3fd] rounded-[24px] shadow-xl text-[#041e49] flex items-center justify-center active:scale-90 transition-all z-50 ripple"
+            >
+              <${Plus} size=${36} />
+            </button>
           </div>
         `}
 
         ${activeTab === 'history' && html`
-          <div className="space-y-4 pt-4">
-            ${history.map(item => html`
-              <div key=${item.id} className="flex items-center gap-4 border-b border-gray-100 pb-4">
-                <div className="text-2xl">${profiles.find(p => p.id === item.profileId)?.avatar}</div>
-                <div className="flex-1">
-                  <div className="font-bold">${item.taskTitle}</div>
-                  <div className="text-xs text-gray-500">${new Date(item.timestamp).toLocaleTimeString()}</div>
+          <div className="space-y-6 pt-4">
+            ${history.length === 0 ? html`<div className="text-center py-20 opacity-30"><${History} size=${64} className="mx-auto" /> <p className="mt-4">No activities yet</p></div>` : 
+              history.map(item => html`
+                <div key=${item.id} className="flex items-center gap-4 border-b border-slate-100 pb-4">
+                  <div className="text-3xl bg-slate-50 w-12 h-12 flex items-center justify-center rounded-xl">${profiles.find(p => p.id === item.profileId)?.avatar}</div>
+                  <div className="flex-1">
+                    <div className="font-bold text-slate-800">${item.taskTitle}</div>
+                    <div className="text-xs text-slate-400">${new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${profiles.find(p => p.id === item.profileId)?.name}</div>
+                  </div>
+                  <div className="font-bold text-[#6750a4]">+${item.starsEarned} ★</div>
                 </div>
-                <div className="font-bold text-[#6750a4]">+${item.starsEarned} ★</div>
+              `)
+            }
+          </div>
+        `}
+
+        ${activeTab === 'profiles' && html`
+          <div className="grid grid-cols-2 gap-4">
+            ${profiles.map(p => html`
+              <div key=${p.id} className="bg-[#f7f2fa] rounded-[32px] p-6 text-center border border-transparent hover:border-[#6750a4]/20 transition-all">
+                <div className="text-5xl mb-3 bg-white w-20 h-20 flex items-center justify-center rounded-full mx-auto shadow-sm">${p.avatar}</div>
+                <div className="font-bold text-lg">${p.name}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6750a4] mt-1">${p.role}</div>
+                <div className="mt-4 text-xl font-bold text-slate-700 flex items-center justify-center gap-1">
+                  <${Star} size={18} fill="#6750a4" className="text-[#6750a4]" /> ${p.stars || 0}
+                </div>
               </div>
             `)}
+            <button 
+              onClick=${() => setIsProfileModalOpen(true)}
+              className="rounded-[32px] border-2 border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-slate-400 active:bg-slate-50 transition-all"
+            >
+              <${UserPlus} size=${40} className="mb-2 opacity-40" />
+              <span className="text-sm font-bold uppercase">Add Member</span>
+            </button>
+          </div>
+        `}
+
+        ${activeTab === 'settings' && html`
+          <div className="space-y-4">
+            <div className="bg-[#f7f2fa] rounded-[28px] p-6">
+              <h3 className="font-bold mb-4">Admin Controls</h3>
+              <button 
+                onClick=${() => { if(confirm("Clear everything?")) { localStorage.clear(); window.location.reload(); } }}
+                className="w-full bg-white border border-red-100 text-red-500 py-4 rounded-2xl flex items-center justify-center gap-2 font-bold ripple"
+              >
+                <${Trash2} size=${20} /> Clear All Data
+              </button>
+            </div>
           </div>
         `}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md h-24 flex items-center justify-around border-t border-gray-100 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#f3edf7]/95 backdrop-blur-md h-28 flex items-center justify-around px-4 border-t border-slate-200 z-[80]">
         ${[
           { id: 'dashboard', icon: Home, label: 'Home' },
           { id: 'tasks', icon: List, label: 'Tasks' },
           { id: 'history', icon: History, label: 'Log' },
           { id: 'profiles', icon: User, label: 'Team' }
         ].map(tab => html`
-          <button onClick=${() => setActiveTab(tab.id)} className=${`flex flex-col items-center gap-1 w-1/4 ${activeTab === tab.id ? 'text-[#6750a4]' : 'text-gray-400'}`}>
-            <${tab.icon} size=${24} />
-            <span className="text-[10px] font-bold uppercase">${tab.label}</span>
+          <button 
+            key=${tab.id}
+            onClick=${() => setActiveTab(tab.id)} 
+            className=${`flex flex-col items-center gap-1 w-1/4 transition-all ${activeTab === tab.id ? 'text-[#6750a4]' : 'text-slate-400'}`}
+          >
+            <div className=${`p-2 px-5 rounded-full transition-all ${activeTab === tab.id ? 'bg-[#e8def8]' : ''}`}>
+              <${tab.icon} size=${24} strokeWidth=${activeTab === tab.id ? 2.5 : 2} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest mt-1">${tab.label}</span>
           </button>
         `)}
       </nav>
 
-      <${M3BottomSheet} isOpen=${isTaskModalOpen} onClose=${() => setIsTaskModalOpen(false)} title="New Goal">
-        <p className="text-center py-10">Task editor form goes here...</p>
+      <${M3BottomSheet} isOpen=${isProfileModalOpen} onClose=${() => setIsProfileModalOpen(false)} title="New Profile">
+        <form onSubmit=${(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          handleAddProfile(fd.get('name'), fd.get('role'), fd.get('avatar'));
+        }} className="space-y-6 pb-10">
+          <input name="name" required placeholder="Name (e.g. Leo)" className="w-full bg-white border border-slate-200 p-5 rounded-2xl text-xl outline-none focus:border-[#6750a4]" />
+          <div className="flex gap-4">
+            ${[Role.PARENT, Role.CHILD].map(r => html`
+              <label key=${r} className="flex-1">
+                <input type="radio" name="role" value=${r} defaultChecked=${r === Role.PARENT} className="hidden peer" />
+                <div className="text-center p-4 rounded-2xl border border-slate-200 peer-checked:bg-[#e8def8] peer-checked:border-[#6750a4] font-bold transition-all">${r}</div>
+              </label>
+            `)}
+          </div>
+          <div className="flex flex-wrap gap-3 justify-center">
+            ${AVATARS.map(a => html`
+              <label key=${a}>
+                <input type="radio" name="avatar" value=${a} defaultChecked=${a === AVATARS[0]} className="hidden peer" />
+                <div className="w-14 h-14 flex items-center justify-center bg-white border border-slate-100 rounded-2xl text-2xl peer-checked:bg-[#e8def8] peer-checked:border-[#6750a4] transition-all shadow-sm">${a}</div>
+              </label>
+            `)}
+          </div>
+          <button type="submit" className="w-full bg-[#6750a4] text-white py-5 rounded-full font-bold text-lg shadow-xl ripple">Create Profile</button>
+        </form>
+      <//>
+
+      <${M3BottomSheet} isOpen=${isTaskModalOpen} onClose=${() => setIsTaskModalOpen(false)} title="New Task">
+        <form onSubmit=${(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const newTask = {
+            id: Date.now().toString(),
+            title: fd.get('title'),
+            description: fd.get('description'),
+            type: fd.get('type'),
+            starValue: parseInt(fd.get('stars')),
+            completedBy: [],
+            isRecurring: 'daily'
+          };
+          setTasks([...tasks, newTask]);
+          setIsTaskModalOpen(false);
+          triggerHaptic(20);
+        }} className="space-y-4 pb-10">
+          <input name="title" required placeholder="Goal Title" className="w-full bg-white border border-slate-200 p-5 rounded-2xl text-xl outline-none" />
+          <textarea name="description" placeholder="Short description..." className="w-full bg-white border border-slate-200 p-4 rounded-2xl h-24 outline-none" />
+          <div className="grid grid-cols-2 gap-4">
+            <select name="type" className="bg-white border border-slate-200 p-4 rounded-2xl font-bold outline-none">
+              <option value=${TaskType.INDIVIDUAL}>Child Task</option>
+              <option value=${TaskType.JOINT}>Joint Goal</option>
+            </select>
+            <input name="stars" type="number" defaultValue="5" className="bg-white border border-slate-200 p-4 rounded-2xl font-bold outline-none" />
+          </div>
+          <button type="submit" className="w-full bg-[#6750a4] text-white py-5 rounded-full font-bold text-lg shadow-xl ripple">Save Goal</button>
+        </form>
       <//>
     </div>
   `;
