@@ -1,0 +1,26 @@
+
+{
+  "short_name": "SuperParent",
+  "name": "SuperParent Reward Tracker",
+  "description": "Secure parent-only task and reward tracker for kids.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdfbff",
+  "theme_color": "#6750a4",
+  "orientation": "portrait",
+  "categories": ["productivity", "parenting"],
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3064/3064197.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3064/3064197.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

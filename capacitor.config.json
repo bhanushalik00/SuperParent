@@ -1,0 +1,16 @@
+
+{
+  "appId": "com.superparent.rewardtracker",
+  "appName": "SuperParent Reward Tracker",
+  "webDir": "dist",
+  "bundledWebRuntime": true,
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "backgroundColor": "#fdfbff"
+  }
+}

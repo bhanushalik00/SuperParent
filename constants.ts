@@ -1,5 +1,5 @@
 
-import { Role, TaskType } from './types';
+import { Role, TaskType, Task } from './types';
 
 export const COLORS = {
   PARENT: 'indigo',
@@ -16,8 +16,10 @@ export const PIN_KEY = 'superparent_pin';
 export const PROFILES_KEY = 'superparent_profiles';
 export const TASKS_KEY = 'superparent_tasks';
 export const HISTORY_KEY = 'superparent_history';
+export const STREAKS_KEY = 'superparent_streaks';
 
-export const DEFAULT_TASKS = [
+// Added explicit Task[] typing to ensure property literals like isRecurring are correctly constrained
+export const DEFAULT_TASKS: Task[] = [
   {
     id: 't1',
     title: 'Brush Teeth',

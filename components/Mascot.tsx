@@ -21,6 +21,9 @@ const Mascot: React.FC<MascotProps> = ({ state, onAnimationEnd }) => {
       case 'JOINT_SUCCESS':
         setDisplayText("Teamwork makes the dream work! 🤝");
         break;
+      case 'STREAK_BOOST':
+        setDisplayText("Wow! A new streak record! 🔥");
+        break;
       case 'CHEER':
         setDisplayText("Keep going! You're doing great!");
         break;
@@ -41,10 +44,11 @@ const Mascot: React.FC<MascotProps> = ({ state, onAnimationEnd }) => {
         {state === 'CHILD_SUCCESS' && '🥳'}
         {state === 'PARENT_SUCCESS' && '😎'}
         {state === 'JOINT_SUCCESS' && '🤩'}
+        {state === 'STREAK_BOOST' && '🔥'}
         {state === 'CHEER' && '🐕'}
       </div>
       <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100 relative">
-        <p className="text-sm font-medium text-slate-700">{displayText}</p>
+        <p className="text-sm font-medium text-slate-700 text-center">{displayText}</p>
         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-l border-t border-slate-100"></div>
       </div>
     </div>

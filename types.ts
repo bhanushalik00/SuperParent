@@ -24,7 +24,7 @@ export interface Task {
   type: TaskType;
   starValue: number;
   assignedTo: string[]; // Profile IDs
-  completedBy: string[]; // Profile IDs who finished their part (for joint tasks)
+  completedBy: string[]; // Profile IDs who finished their part (for today/current cycle)
   isRecurring: 'daily' | 'weekly' | 'none';
   category: string;
 }
@@ -38,4 +38,11 @@ export interface HistoryItem {
   starsEarned: number;
 }
 
-export type MascotState = 'IDLE' | 'PARENT_SUCCESS' | 'CHILD_SUCCESS' | 'JOINT_SUCCESS' | 'CHEER';
+export interface StreakInfo {
+  count: number;
+  lastCompletionDate: string; // ISO Date string (YYYY-MM-DD)
+}
+
+export type ProfileTaskStats = Record<string, StreakInfo>; // key: "profileId_taskId"
+
+export type MascotState = 'IDLE' | 'PARENT_SUCCESS' | 'CHILD_SUCCESS' | 'JOINT_SUCCESS' | 'CHEER' | 'STREAK_BOOST';
