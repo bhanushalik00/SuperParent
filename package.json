@@ -1,23 +1,23 @@
 {
   "name": "superparent-reward-tracker",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
+  "version": "1.1.0",
+  "description": "Secure parent-only task and reward tracker for kids with SQLite persistence.",
+  "main": "index.js",
   "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "htm": "3.1.1",
-    "lucide-react": "0.263.1"
+    "lucide-react": "0.263.1",
+    "@capacitor-community/sqlite": "^6.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  },
+  "scripts": {
+    "start": "npx serve .",
+    "build": "mkdir -p www && cp index.html index.js App.js types.ts constants.ts manifest.json sw.js metadata.json www/ && cp -r components services www/ 2>/dev/null || :",
+    "sync": "npm run build && npx cap sync"
   }
 }

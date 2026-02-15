@@ -1,11 +1,10 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { 
   Plus, Settings, Home, List, Trophy, Lock, UserPlus, 
-  User, CheckCircle2, ChevronRight, Star, History, 
-  Flame, Rocket, ShieldCheck, X, Trash2, Key, Download 
+  User, CheckCircle2, Star, History, Trash2, X 
 } from 'lucide-react';
+import { storage } from './services/storage.js';
 
 const html = htm.bind(React.createElement);
 
@@ -24,16 +23,6 @@ const DEFAULT_TASKS = [
   { id: 't2', title: 'Finish Homework', description: 'All school work done for the day', type: TaskType.INDIVIDUAL, starValue: 5, completedBy: [], isRecurring: 'daily' },
   { id: 't3', title: 'Morning Walk', description: 'Parent & Child walk together', type: TaskType.JOINT, starValue: 10, completedBy: [], isRecurring: 'daily' }
 ];
-
-const storage = {
-  get: (key, defaultValue) => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch { return defaultValue; }
-  },
-  set: (key, value) => localStorage.setItem(key, JSON.stringify(value))
-};
 
 const triggerHaptic = (pattern = 10) => {
   if (navigator.vibrate) navigator.vibrate(pattern);
@@ -77,17 +66,25 @@ const Mascot = ({ state, onAnimationEnd }) => {
 
 const PinScreen = ({ onUnlock }) => {
   const [pin, setPin] = useState('');
-  const [savedPin] = useState(() => storage.get(PIN_KEY, ''));
+  const [savedPin, setSavedPin] = useState('');
   const [error, setError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleInput = (val) => {
+  useEffect(() => {
+    storage.get(PIN_KEY, '').then(val => {
+      setSavedPin(val);
+      setIsLoading(false);
+    });
+  }, []);
+
+  const handleInput = async (val) => {
     triggerHaptic(8);
     if (pin.length < 4) {
       const newPin = pin + val;
       setPin(newPin);
       if (newPin.length === 4) {
         if (!savedPin || newPin === savedPin) {
-          if (!savedPin) storage.set(PIN_KEY, newPin);
+          if (!savedPin) await storage.set(PIN_KEY, newPin);
           triggerHaptic([30, 20, 30]);
           onUnlock();
         } else {
@@ -98,6 +95,8 @@ const PinScreen = ({ onUnlock }) => {
       }
     }
   };
+
+  if (isLoading) return html`<div className="fixed inset-0 bg-[#6750a4] flex items-center justify-center text-white">Loading Security...</div>`;
 
   return html`
     <div className="fixed inset-0 bg-[#6750a4] flex flex-col items-center justify-center p-8 z-[200] text-white">
@@ -142,24 +141,44 @@ const M3BottomSheet = ({ isOpen, onClose, title, children }) => {
   `;
 };
 
-// --- Main App ---
-
 export default function App() {
+  const [isDbReady, setIsDbReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [profiles, setProfiles] = useState(() => storage.get(PROFILES_KEY, []));
-  const [tasks, setTasks] = useState(() => storage.get(TASKS_KEY, DEFAULT_TASKS));
-  const [history, setHistory] = useState(() => storage.get(HISTORY_KEY, []));
-  const [streaks, setStreaks] = useState(() => storage.get(STREAKS_KEY, {}));
+  
+  const [profiles, setProfiles] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [streaks, setStreaks] = useState({});
   const [mascotState, setMascotState] = useState('IDLE');
   
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  useEffect(() => { storage.set(PROFILES_KEY, profiles); }, [profiles]);
-  useEffect(() => { storage.set(TASKS_KEY, tasks); }, [tasks]);
-  useEffect(() => { storage.set(HISTORY_KEY, history); }, [history]);
-  useEffect(() => { storage.set(STREAKS_KEY, streaks); }, [streaks]);
+  // Initialize DB and load data
+  useEffect(() => {
+    const initApp = async () => {
+      await storage.init();
+      const [p, t, h, s] = await Promise.all([
+        storage.get(PROFILES_KEY, []),
+        storage.get(TASKS_KEY, DEFAULT_TASKS),
+        storage.get(HISTORY_KEY, []),
+        storage.get(STREAKS_KEY, {})
+      ]);
+      setProfiles(p);
+      setTasks(t);
+      setHistory(h);
+      setStreaks(s);
+      setIsDbReady(true);
+    };
+    initApp();
+  }, []);
+
+  // Sync state to DB on changes
+  useEffect(() => { if (isDbReady) storage.set(PROFILES_KEY, profiles); }, [profiles, isDbReady]);
+  useEffect(() => { if (isDbReady) storage.set(TASKS_KEY, tasks); }, [tasks, isDbReady]);
+  useEffect(() => { if (isDbReady) storage.set(HISTORY_KEY, history); }, [history, isDbReady]);
+  useEffect(() => { if (isDbReady) storage.set(STREAKS_KEY, streaks); }, [streaks, isDbReady]);
 
   const handleTaskCompletion = (taskId, profileId) => {
     const task = tasks.find(t => t.id === taskId);
@@ -185,6 +204,7 @@ export default function App() {
   const parentStars = profiles.filter(p => p.role === Role.PARENT).reduce((s, p) => s + (p.stars || 0), 0);
   const childStars = profiles.filter(p => p.role === Role.CHILD).reduce((s, p) => s + (p.stars || 0), 0);
 
+  if (!isDbReady) return html`<div className="flex h-screen items-center justify-center bg-[#fdfbff] text-[#6750a4]">Waking up the Database...</div>`;
   if (!isAuthenticated) return html`<${PinScreen} onUnlock=${() => setIsAuthenticated(true)} />`;
 
   return html`
@@ -193,7 +213,7 @@ export default function App() {
         <header className="pt-14 pb-8 flex justify-between items-start">
           <div>
             <h1 className="text-[32px] font-normal text-[#1c1b1f]">SuperParent</h1>
-            <p className="text-[#49454f] text-sm mt-1 font-medium">Rewards Dashboard</p>
+            <p className="text-[#49454f] text-sm mt-1 font-medium">Secure SQLite Rewards</p>
           </div>
           <button onClick=${() => setActiveTab('settings')} className="p-3 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Settings} size=${20} /></button>
         </header>
@@ -211,14 +231,6 @@ export default function App() {
                 <div className="text-[10px] font-bold uppercase tracking-widest text-[#6750a4] opacity-80 mb-2">Kids</div>
                 <div className="text-3xl font-medium flex items-center gap-2">${childStars} <${Star} size=${24} fill="#6750a4" /></div>
               </div>
-            </div>
-
-            <div className="bg-[#d7effb] p-7 rounded-[28px] flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-[#001e2e]">Family Goal</h3>
-                <p className="text-sm text-[#001e2e]/70 mt-1">${childStars >= parentStars ? "Kids are taking the lead! 🚀" : "Parents setting the pace! 💪"}</p>
-              </div>
-              <${Trophy} size=${36} className="text-[#001e2e] opacity-30" />
             </div>
           </div>
         `}
@@ -265,7 +277,7 @@ export default function App() {
 
         ${activeTab === 'history' && html`
           <div className="space-y-6 pt-4">
-            ${history.length === 0 ? html`<div className="text-center py-20 opacity-30"><${History} size=${64} className="mx-auto" /> <p className="mt-4">No activities yet</p></div>` : 
+            ${history.length === 0 ? html`<div className="text-center py-20 opacity-30"><p className="mt-4">No activities yet</p></div>` : 
               history.map(item => html`
                 <div key=${item.id} className="flex items-center gap-4 border-b border-slate-100 pb-4">
                   <div className="text-3xl bg-slate-50 w-12 h-12 flex items-center justify-center rounded-xl">${profiles.find(p => p.id === item.profileId)?.avatar}</div>
@@ -283,10 +295,9 @@ export default function App() {
         ${activeTab === 'profiles' && html`
           <div className="grid grid-cols-2 gap-4">
             ${profiles.map(p => html`
-              <div key=${p.id} className="bg-[#f7f2fa] rounded-[32px] p-6 text-center border border-transparent hover:border-[#6750a4]/20 transition-all">
+              <div key=${p.id} className="bg-[#f7f2fa] rounded-[32px] p-6 text-center">
                 <div className="text-5xl mb-3 bg-white w-20 h-20 flex items-center justify-center rounded-full mx-auto shadow-sm">${p.avatar}</div>
                 <div className="font-bold text-lg">${p.name}</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6750a4] mt-1">${p.role}</div>
                 <div className="mt-4 text-xl font-bold text-slate-700 flex items-center justify-center gap-1">
                   <${Star} size={18} fill="#6750a4" className="text-[#6750a4]" /> ${p.stars || 0}
                 </div>
@@ -307,10 +318,10 @@ export default function App() {
             <div className="bg-[#f7f2fa] rounded-[28px] p-6">
               <h3 className="font-bold mb-4">Admin Controls</h3>
               <button 
-                onClick=${() => { if(confirm("Clear everything?")) { localStorage.clear(); window.location.reload(); } }}
+                onClick=${() => { if(confirm("Clear SQLite Database and settings?")) { storage.clearAll().then(() => window.location.reload()); } }}
                 className="w-full bg-white border border-red-100 text-red-500 py-4 rounded-2xl flex items-center justify-center gap-2 font-bold ripple"
               >
-                <${Trash2} size=${20} /> Clear All Data
+                <${Trash2} size=${20} /> Clear SQLite Data
               </button>
             </div>
           </div>
@@ -343,7 +354,7 @@ export default function App() {
           const fd = new FormData(e.target);
           handleAddProfile(fd.get('name'), fd.get('role'), fd.get('avatar'));
         }} className="space-y-6 pb-10">
-          <input name="name" required placeholder="Name (e.g. Leo)" className="w-full bg-white border border-slate-200 p-5 rounded-2xl text-xl outline-none focus:border-[#6750a4]" />
+          <input name="name" required placeholder="Name (e.g. Leo)" className="w-full bg-white border border-slate-200 p-5 rounded-2xl text-xl outline-none" />
           <div className="flex gap-4">
             ${[Role.PARENT, Role.CHILD].map(r => html`
               <label key=${r} className="flex-1">
