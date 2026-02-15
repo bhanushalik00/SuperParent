@@ -75,15 +75,11 @@
     <div id="root"></div>
     <script type="module" src="./index.js"></script>
     <script>
-        // Only run Service Worker if not on Capacitor and origins match
         if ('serviceWorker' in navigator && window.location.protocol !== 'capacitor:') {
             window.addEventListener('load', () => {
-                const swUrl = './sw.js';
-                navigator.serviceWorker.register(swUrl)
-                    .then(reg => console.log('SW Registered'))
-                    .catch(err => {
-                        if (err.name !== 'SecurityError') console.error('SW Error:', err);
-                    });
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('SW Registered'))
+                    .catch(err => console.log('SW Skip:', err.message));
             });
         }
     </script>
