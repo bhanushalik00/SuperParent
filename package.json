@@ -1,6 +1,6 @@
 {
   "name": "superparent-reward-tracker",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Secure parent-only task and reward tracker for kids with high-reliability SQLite persistence.",
   "main": "index.js",
   "dependencies": {
@@ -17,7 +17,7 @@
   },
   "scripts": {
     "start": "npx serve .",
-    "build": "mkdir -p www && cp index.html index.js App.js types.ts constants.ts manifest.json sw.js metadata.json www/ && cp -r components services www/ 2>/dev/null || :",
+    "build": "mkdir -p www && cp index.html index.js App.js constants.js manifest.json sw.js metadata.json www/ && mkdir -p www/services && cp services/storage.js www/services/ 2>/dev/null || :",
     "sync": "npm run build && npx cap sync"
   }
 }
