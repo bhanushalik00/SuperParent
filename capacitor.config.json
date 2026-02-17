@@ -1,6 +1,6 @@
 {
-  "appId": "com.superparent.rewardtracker",
-  "appName": "SuperParent Reward Tracker",
+  "appId": "com.bhanushalik00.superparent",
+  "appName": "SuperParent",
   "webDir": "www",
   "server": {
     "androidScheme": "https",

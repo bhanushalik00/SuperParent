@@ -1,6 +1,6 @@
 {
-  "name": "SuperParent Reward Tracker",
-  "description": "A secure, parent-only Android-style reward management app for tracking child tasks, joint goals, and stars with a playful mascot.",
+  "name": "SuperParent",
+  "description": "Practical Parenting App.",
   "requestFramePermissions": [],
   "permissions": [
     "vibrate"

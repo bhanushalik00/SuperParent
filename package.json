@@ -1,7 +1,8 @@
 {
-  "name": "superparent-reward-tracker",
-  "version": "1.2.5",
-  "description": "Secure parent-only task and reward tracker for kids with high-reliability SQLite persistence.",
+  "name": "superparent",
+  "version": "1.0.0",
+  "description": "The ultimate secure reward tracker for families.",
+  "author": "bhanushalik00",
   "main": "index.js",
   "dependencies": {
     "react": "18.2.0",
@@ -13,7 +14,8 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
-    "@capacitor/android": "^6.0.0"
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/assets": "^3.0.0"
   },
   "scripts": {
     "start": "npx serve .",
