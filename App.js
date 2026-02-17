@@ -100,26 +100,30 @@ const PinScreen = ({ onUnlock }) => {
   if (isLoading) return html`<div className="fixed inset-0 bg-[#6750a4] flex items-center justify-center text-white">Loading Security...</div>`;
 
   return html`
-    <div className="fixed inset-0 bg-[#6750a4] flex flex-col items-center justify-center p-8 z-[200] text-white">
-      <div className="mb-12 text-center">
-        <div className="bg-white/20 p-8 rounded-[32px] inline-block mb-6 shadow-xl">
-          <${Lock} size=${48} className="text-white" />
+    <div className="fixed inset-0 bg-[#6750a4] flex flex-col items-center justify-start overflow-y-auto pt-10 pb-10 z-[200] text-white">
+      <div className="w-full max-w-xs px-4 flex flex-col items-center">
+        <div className="mb-6 text-center">
+          <div className="bg-white/20 p-6 rounded-[24px] inline-block mb-4 shadow-xl">
+            <${Lock} size=${32} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-medium tracking-tight mb-1">${savedPin ? 'Parent Access' : 'Create Admin PIN'}</h1>
+          <p className="text-[#eaddff] text-xs font-medium opacity-80">Only parents should know this PIN</p>
         </div>
-        <h1 className="text-3xl font-medium tracking-tight mb-2">${savedPin ? 'Parent Access' : 'Create Admin PIN'}</h1>
-        <p className="text-[#eaddff] text-sm font-medium opacity-80">Only parents should know this PIN</p>
-      </div>
-      <div className="flex gap-6 mb-20">
-        ${[0, 1, 2, 3].map(i => html`
-          <div key=${i} className=${`w-4 h-4 rounded-full border-2 border-white transition-all ${pin.length > i ? 'bg-white scale-125' : 'bg-transparent'} ${error ? 'bg-red-400 border-red-400' : ''}`} />
-        `)}
-      </div>
-      <div className="grid grid-cols-3 gap-x-10 gap-y-8">
-        ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, '←'].map(btn => html`
-          <button key=${btn} onClick=${() => btn === 'C' ? setPin('') : btn === '←' ? setPin(p => p.slice(0, -1)) : handleInput(btn.toString())}
-            className="w-20 h-20 rounded-full bg-white/10 active:bg-white/30 flex items-center justify-center text-3xl font-medium ripple">
-            ${btn}
-          </button>
-        `)}
+        
+        <div className="flex gap-4 mb-8">
+          ${[0, 1, 2, 3].map(i => html`
+            <div key=${i} className=${`w-3 h-3 rounded-full border-2 border-white transition-all ${pin.length > i ? 'bg-white scale-110' : 'bg-transparent'} ${error ? 'bg-red-400 border-red-400' : ''}`} />
+          `)}
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 sm:gap-6">
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, '←'].map(btn => html`
+            <button key=${btn} onClick=${() => btn === 'C' ? setPin('') : btn === '←' ? setPin(p => p.slice(0, -1)) : handleInput(btn.toString())}
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 active:bg-white/30 flex items-center justify-center text-2xl sm:text-3xl font-medium ripple">
+              ${btn}
+            </button>
+          `)}
+        </div>
       </div>
     </div>
   `;
