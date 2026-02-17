@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { 
   Plus, Settings, Home, List, Trophy, Lock, UserPlus, 
-  User, CheckCircle2, Star, History, Trash2, X 
+  User, CheckCircle2, Star, History, Trash2, X, WifiOff, CloudOff
 } from 'lucide-react';
 import { storage } from './services/storage.js';
 
@@ -29,12 +29,33 @@ const triggerHaptic = (pattern = 10) => {
   if (navigator.vibrate) navigator.vibrate(pattern);
 };
 
+// --- Custom Hooks ---
+const useOnlineStatus = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  return isOnline;
+};
+
 // --- Sub-components ---
 
-const Mascot = ({ state, onAnimationEnd }) => {
+const Mascot = ({ state, onAnimationEnd, isOnline }) => {
   const [displayText, setDisplayText] = useState("Hi Super Parent!");
   
   useEffect(() => {
+    if (!isOnline && state === 'IDLE') {
+      setDisplayText("Working offline! Data is safe locally. 💾");
+      return;
+    }
+
     const texts = {
       CHILD_SUCCESS: "Awesome job, kiddo! 🎉",
       PARENT_SUCCESS: "Great role modeling! ⭐",
@@ -48,9 +69,9 @@ const Mascot = ({ state, onAnimationEnd }) => {
       const timer = setTimeout(onAnimationEnd, 3000);
       return () => clearTimeout(timer);
     }
-  }, [state, onAnimationEnd]);
+  }, [state, onAnimationEnd, isOnline]);
 
-  const emojis = { IDLE: '🐶', CHILD_SUCCESS: '🥳', PARENT_SUCCESS: '😎', JOINT_SUCCESS: '🤩', STREAK_BOOST: '🔥', CHEER: '🐕' };
+  const emojis = { IDLE: isOnline ? '🐶' : '🤖', CHILD_SUCCESS: '🥳', PARENT_SUCCESS: '😎', JOINT_SUCCESS: '🤩', STREAK_BOOST: '🔥', CHEER: '🐕' };
 
   return html`
     <div className="flex flex-col items-center justify-center p-4">
@@ -147,6 +168,7 @@ const M3BottomSheet = ({ isOpen, onClose, title, children }) => {
 };
 
 export default function App() {
+  const isOnline = useOnlineStatus();
   const [isDbReady, setIsDbReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -173,10 +195,8 @@ export default function App() {
 
       let t = await storage.get(TASKS_KEY, DEFAULT_TASKS);
       
-      // Daily Reset Logic
-      const today = new Date().toLocaleDateString('en-CA'); // Reliable YYYY-MM-DD
+      const today = new Date().toLocaleDateString('en-CA');
       if (lastReset !== today) {
-        console.log("SuperParent: New day detected! Resetting task completion status.");
         t = t.map(task => ({ ...task, completedBy: [] }));
         await storage.set(TASKS_KEY, t);
         await storage.set(LAST_RESET_KEY, today);
@@ -221,23 +241,31 @@ export default function App() {
   const parentStars = profiles.filter(p => p.role === Role.PARENT).reduce((s, p) => s + (p.stars || 0), 0);
   const childStars = profiles.filter(p => p.role === Role.CHILD).reduce((s, p) => s + (p.stars || 0), 0);
 
-  if (!isDbReady) return html`<div className="flex h-screen items-center justify-center bg-[#fdfbff] text-[#6750a4]">Waking up the Database...</div>`;
+  if (!isDbReady) return null; // Let the splash screen handle this
   if (!isAuthenticated) return html`<${PinScreen} onUnlock=${() => setIsAuthenticated(true)} />`;
 
   return html`
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-[#fdfbff] overflow-hidden">
+    <div className="flex flex-col h-screen max-w-md mx-auto bg-[#fdfbff] overflow-hidden relative">
+      ${!isOnline && html`
+        <div className="bg-[#ba1a1a] text-white py-1 px-4 text-[10px] font-bold uppercase tracking-widest text-center animate-pulse z-[100] flex items-center justify-center gap-2">
+          <${WifiOff} size=${10} /> Offline Mode - Working Locally
+        </div>
+      `}
+
       <div className="flex-1 overflow-y-auto pb-36 px-6">
         <header className="pt-14 pb-8 flex justify-between items-start">
           <div>
             <h1 className="text-[32px] font-normal text-[#1c1b1f]">SuperParent</h1>
-            <p className="text-[#49454f] text-sm mt-1 font-medium">Secure SQLite Rewards</p>
+            <p className="text-[#49454f] text-sm mt-1 font-medium">
+              ${isOnline ? 'Secure SQLite Rewards' : html`<span className="text-[#ba1a1a]">Offline - Local Access Only</span>`}
+            </p>
           </div>
           <button onClick=${() => setActiveTab('settings')} className="p-3 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Settings} size=${20} /></button>
         </header>
 
         ${activeTab === 'dashboard' && html`
           <div className="space-y-6">
-            <${Mascot} state=${mascotState} onAnimationEnd=${() => setMascotState('IDLE')} />
+            <${Mascot} isOnline=${isOnline} state=${mascotState} onAnimationEnd=${() => setMascotState('IDLE')} />
             
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#6750a4] rounded-[32px] p-6 text-white shadow-lg">
