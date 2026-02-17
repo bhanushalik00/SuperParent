@@ -16,6 +16,7 @@ const PROFILES_KEY = 'superparent_profiles';
 const TASKS_KEY = 'superparent_tasks';
 const HISTORY_KEY = 'superparent_history';
 const STREAKS_KEY = 'superparent_streaks';
+const LAST_RESET_KEY = 'superparent_last_reset';
 const AVATARS = ['🦁', '🐘', '🦒', '🦓', '🐼', '🐨', '🦊', '🦉', '🐢', '🦖', '👨‍🚀', '👩‍🔬', '👨‍🚒', '👩‍🎨'];
 
 const DEFAULT_TASKS = [
@@ -159,12 +160,24 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       await storage.init();
-      const [p, t, h, s] = await Promise.all([
+      const [p, h, s, lastReset] = await Promise.all([
         storage.get(PROFILES_KEY, []),
-        storage.get(TASKS_KEY, DEFAULT_TASKS),
         storage.get(HISTORY_KEY, []),
-        storage.get(STREAKS_KEY, {})
+        storage.get(STREAKS_KEY, {}),
+        storage.get(LAST_RESET_KEY, '')
       ]);
+
+      let t = await storage.get(TASKS_KEY, DEFAULT_TASKS);
+      
+      // Daily Reset Logic
+      const today = new Date().toLocaleDateString('en-CA'); // Reliable YYYY-MM-DD
+      if (lastReset !== today) {
+        console.log("SuperParent: New day detected! Resetting task completion status.");
+        t = t.map(task => ({ ...task, completedBy: [] }));
+        await storage.set(TASKS_KEY, t);
+        await storage.set(LAST_RESET_KEY, today);
+      }
+
       setProfiles(p);
       setTasks(t);
       setHistory(h);
