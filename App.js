@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { 
   Plus, Settings, Home, List, Trophy, Lock, UserPlus, 
-  User, CheckCircle2, Star, History, Trash2, X, WifiOff, CloudOff
+  User, CheckCircle2, Star, History, Trash2, X, WifiOff, CloudOff, AlertTriangle
 } from 'lucide-react';
 import { storage } from './services/storage.js';
 
@@ -257,7 +257,7 @@ export default function App() {
           <div>
             <h1 className="text-[32px] font-normal text-[#1c1b1f]">SuperParent</h1>
             <p className="text-[#49454f] text-sm mt-1 font-medium">
-              ${isOnline ? 'Secure SQLite Rewards' : html`<span className="text-[#ba1a1a]">Offline - Local Access Only</span>`}
+              ${isOnline ? 'Practical Parenting' : html`<span className="text-[#ba1a1a]">Offline - Local Access Only</span>`}
             </p>
           </div>
           <button onClick=${() => setActiveTab('settings')} className="p-3 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Settings} size=${20} /></button>
@@ -361,12 +361,20 @@ export default function App() {
         ${activeTab === 'settings' && html`
           <div className="space-y-4">
             <div className="bg-[#f7f2fa] rounded-[28px] p-6">
-              <h3 className="font-bold mb-4">Admin Controls</h3>
+              <div className="flex items-center gap-2 mb-4 text-[#ba1a1a]">
+                <${AlertTriangle} size=${20} />
+                <h3 className="font-bold">Danger Zone</h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-6 font-medium leading-relaxed">Resetting will wipe all progress. This action is permanent.</p>
               <button 
-                onClick=${() => { if(confirm("Clear SQLite Database and settings?")) { storage.clearAll().then(() => window.location.reload()); } }}
+                onClick=${() => { 
+                  if(confirm("Wait! Are you absolutely sure? This will permanently delete all your profiles, tasks, and star progress. This action cannot be undone.")) { 
+                    storage.clearAll().then(() => window.location.reload()); 
+                  } 
+                }}
                 className="w-full bg-white border border-red-100 text-red-500 py-4 rounded-2xl flex items-center justify-center gap-2 font-bold ripple"
               >
-                <${Trash2} size=${20} /> Clear SQLite Data
+                <${Trash2} size=${20} /> Reset App
               </button>
             </div>
           </div>
