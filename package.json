@@ -2,9 +2,11 @@
   "name": "superparent",
   "version": "1.0.0",
   "description": "The ultimate secure reward tracker for families.",
+  "type": "module",
   "author": "bhanushalik00",
   "main": "index.js",
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor-community/sqlite": "^6.0.0",
     "@capacitor/core": "^6.0.0",
     "@revenuecat/purchases-capacitor": "^12.2.1",
@@ -17,13 +19,15 @@
     "@capacitor/android": "^6.0.0",
     "@capacitor/assets": "^3.0.0",
     "@capacitor/cli": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "eslint": "^9.39.3",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1"
   },
   "scripts": {
     "start": "npx serve .",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint .",
     "build": "rm -rf www && mkdir -p www/services && cp index.html index.js App.js manifest.json sw.js metadata.json www/ && cp services/storage.js www/services/",
     "sync": "npm run build && npx cap sync android"
   }

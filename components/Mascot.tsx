@@ -8,29 +8,20 @@ interface MascotProps {
 }
 
 const Mascot: React.FC<MascotProps> = ({ state, onAnimationEnd }) => {
-  const [displayText, setDisplayText] = useState("Hi Super Parent!");
+  const getDisplayText = (s: MascotState) => {
+    switch (s) {
+      case 'CHILD_SUCCESS': return "Awesome job, kiddo! 🎉";
+      case 'PARENT_SUCCESS': return "Great role modeling! ⭐";
+      case 'JOINT_SUCCESS': return "Teamwork makes the dream work! 🤝";
+      case 'STREAK_BOOST': return "Wow! A new streak record! 🔥";
+      case 'CHEER': return "Keep going! You're doing great!";
+      default: return "Ready for today's goals?";
+    }
+  };
+
+  const displayText = getDisplayText(state);
 
   useEffect(() => {
-    switch (state) {
-      case 'CHILD_SUCCESS':
-        setDisplayText("Awesome job, kiddo! 🎉");
-        break;
-      case 'PARENT_SUCCESS':
-        setDisplayText("Great role modeling! ⭐");
-        break;
-      case 'JOINT_SUCCESS':
-        setDisplayText("Teamwork makes the dream work! 🤝");
-        break;
-      case 'STREAK_BOOST':
-        setDisplayText("Wow! A new streak record! 🔥");
-        break;
-      case 'CHEER':
-        setDisplayText("Keep going! You're doing great!");
-        break;
-      default:
-        setDisplayText("Ready for today's goals?");
-    }
-
     if (state !== 'IDLE' && onAnimationEnd) {
       const timer = setTimeout(onAnimationEnd, 3000);
       return () => clearTimeout(timer);

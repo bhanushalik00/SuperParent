@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { 
-  Plus, Settings, Home, List, Lock, UserPlus, 
-  User, CheckCircle2, Star, Trash2, X, WifiOff, 
-  AlertTriangle, ShoppingBag, Palette, ChevronRight, Check,
-  BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield
+  Plus, Settings, Home, List, Trophy, Lock, UserPlus, 
+  User, CheckCircle2, Star, History, Trash2, X, WifiOff, CloudOff, 
+  AlertTriangle, ShoppingBag, Palette, Crown, ChevronRight, Check,
+  BookOpen, Lightbulb, Heart, CreditCard
 } from 'lucide-react';
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
-import { 
-  AdMob, 
-  BannerAdSize, 
-  BannerAdPosition, 
-  BannerAdPluginEvents 
-} from '@capacitor-community/admob';
 import { storage } from './services/storage.js';
 
 const html = htm.bind(React.createElement);
@@ -31,16 +25,15 @@ const REWARDS_KEY = 'superparent_rewards';
 const THEME_KEY = 'superparent_theme';
 const ALLOWANCE_KEY = 'superparent_allowance_settings';
 const TOUR_COMPLETED_KEY = 'superparent_tour_completed';
-const ADMOB_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111'; // Test ID
 
 const AVATARS = [
   { char: '🦁', premium: false }, { char: '🐘', premium: false }, 
   { char: '🦒', premium: false }, { char: '🦓', premium: false }, 
-  { char: '🐼', premium: false }, { char: '🐨', premium: false }, 
-  { char: '🦊', premium: false }, { char: '🦉', premium: false }, 
-  { char: '🐢', premium: false }, { char: '🦖', premium: false }, 
-  { char: '👨‍🚀', premium: false }, { char: '👩‍🔬', premium: false }, 
-  { char: '👨‍🚒', premium: false }, { char: '👩‍🎨', premium: false }
+  { char: '🐼', premium: true }, { char: '🐨', premium: true }, 
+  { char: '🦊', premium: true }, { char: '🦉', premium: true }, 
+  { char: '🐢', premium: true }, { char: '🦖', premium: true }, 
+  { char: '👨‍🚀', premium: true }, { char: '👩‍🔬', premium: true }, 
+  { char: '👨‍🚒', premium: true }, { char: '👩‍🎨', premium: true }
 ];
 
 const THEMES = {
@@ -56,37 +49,6 @@ const DEFAULT_TASKS = [
   { id: 't3', title: '15 Mins Reading', description: 'Read a book of your choice', type: TaskType.INDIVIDUAL, starValue: 5, completedBy: [], isRecurring: 'daily' },
   { id: 't4', title: 'Family Dinner Help', description: 'Help set or clear the table', type: TaskType.JOINT, starValue: 10, completedBy: [], isRecurring: 'daily' }
 ];
-
-const TERMS_OF_SERVICE = `
-1. ACCEPTANCE OF TERMS
-By using SuperParent, you agree to these terms. If you do not agree, do not use the app.
-
-2. DESCRIPTION OF SERVICE
-SuperParent is a tool for family organization and parenting education. Content is for informational purposes only.
-
-3. USER CONDUCT
-You are responsible for the data you enter. Do not use the app for any illegal purposes.
-
-4. SUBSCRIPTIONS & SUPPORT
-Payments made via the app are processed by Google Play. "Donations" or "Support" payments are voluntary and non-refundable.
-
-5. LIMITATION OF LIABILITY
-SuperParent is provided "as is" without warranties of any kind.
-`;
-
-const PRIVACY_POLICY = `
-1. DATA COLLECTION
-We store your family profiles, tasks, and history locally on your device. We do not sell your personal data.
-
-2. THIRD-PARTY SERVICES
-We use RevenueCat and Google Play to process payments. These services may collect data according to their own policies.
-
-3. SECURITY
-We take reasonable measures to protect your data, but no method of electronic storage is 100% secure.
-
-4. CHILDREN'S PRIVACY
-This app is intended for use by parents. We do not knowingly collect data from children under 13 without parental consent.
-`;
 
 const PARENTING_TIPS = [
   { 
@@ -282,68 +244,36 @@ const M3BottomSheet = ({ isOpen, onClose, title, children, theme }) => {
   `;
 };
 
-const AdBanner = ({ theme }) => {
-  const sponsors = [
-    { name: 'HealthyKids Snacks', icon: '🍎' },
-    { name: 'EcoToys Collective', icon: '🧸' },
-    { name: 'Parenting Weekly', icon: '📚' },
-    { name: 'SleepyTime Apps', icon: '🌙' }
-  ];
-  const sponsor = sponsors[Math.floor(Math.random() * sponsors.length)];
-
-  return html`
-    <div className="mx-6 mb-6 p-5 rounded-[28px] bg-white border border-[#e7e0eb] flex items-center gap-4 relative overflow-hidden shadow-sm">
-      <div className="absolute top-0 right-0 bg-[#f3edf7] text-[8px] px-2 py-0.5 rounded-bl-lg font-bold uppercase text-[#6750a4]">Sponsored</div>
-      <div className="w-12 h-12 bg-[#f7f2fa] rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-        ${sponsor.icon}
-      </div>
-      <div className="flex-1">
-        <h4 className="text-xs font-bold text-[#1c1b1f]">${sponsor.name}</h4>
-        <p className="text-[10px] text-[#49454f] opacity-70">Support SuperParent to remove ads</p>
-      </div>
-      <${ChevronRight} size=${14} className="text-[#79747e]" />
-    </div>
-  `;
-};
-
-const PremiumUpsell = ({ onClose, onUpgrade }) => {
-  const donationOptions = [
-    { amount: '$0.99', label: 'Coffee' },
-    { amount: '$4.99', label: 'Lunch' },
-    { amount: '$9.99', label: 'Dinner' }
-  ];
-
+const PremiumUpsell = ({ onClose, onUpgrade, theme }) => {
   return html`
     <div className="px-2">
-      <div className="bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 rounded-[40px] text-white shadow-xl relative overflow-hidden">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+      <div className="bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-             <div className="bg-white/20 p-2 rounded-xl"><${Heart} size=${20} fill="white" /></div>
-             <span className="font-bold text-[10px] tracking-[0.2em] uppercase">Community Supported</span>
+          <div className="flex items-center gap-3 mb-4">
+             <div className="bg-white/20 p-2 rounded-xl"><${Crown} size=${20} /></div>
+             <span className="font-medium text-xs tracking-wider">PREMIUM EDITION</span>
           </div>
-          <h3 className="text-3xl font-medium mb-3 leading-tight">Support <br/> SuperParent</h3>
-          <p className="text-sm opacity-80 mb-8 leading-relaxed">SuperParent is now free for everyone! If you find it helpful, please consider a small donation to enjoy an ad-free experience and support expert content.</p>
+          <h3 className="text-2xl font-medium mb-2">Unleash Full Potential</h3>
+          <p className="text-sm opacity-80 mb-6 leading-relaxed">Upgrade to unlock unlimited family members, the Star Store, exclusive themes, and pro avatars.</p>
           
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            ${donationOptions.map(opt => html`
-              <button key=${opt.amount} onClick=${() => onUpgrade(opt.amount)} className="bg-white/10 hover:bg-white/20 p-4 rounded-2xl flex flex-col items-center gap-1 transition-all border border-white/10">
-                <span className="text-xs opacity-60">${opt.label}</span>
-                <span className="font-bold">${opt.amount}</span>
-              </button>
+          <div className="space-y-3 mb-8">
+            ${[
+              'Unlimited Family Profiles',
+              'Star Rewards Store access',
+              'Allowance Tracking Mode',
+              'Expert Parenting Guides',
+              'Exclusive Themes & Avatars'
+            ].map(f => html`
+              <div key=${f} className="flex items-center gap-3 text-sm font-medium">
+                <${CheckCircle2} size=${16} className="text-[#d3e3fd]" /> ${f}
+              </div>
             `)}
           </div>
 
-          <div className="space-y-3 mb-8">
-            <div className="flex items-center gap-3 text-xs font-medium opacity-80">
-              <${CheckCircle2} size=${14} className="text-[#d3e3fd]" /> Remove All Advertisements
-            </div>
-            <div className="flex items-center gap-3 text-xs font-medium opacity-80">
-              <${CheckCircle2} size=${14} className="text-[#d3e3fd]" /> Support Independent Development
-            </div>
-          </div>
-
-          <button onClick=${onClose} className="w-full text-white/60 text-[10px] font-bold uppercase tracking-[0.2em]">Maybe later</button>
+          <button onClick=${onUpgrade} className="w-full bg-white text-[#6750a4] py-4 rounded-full font-medium shadow-lg active:scale-95 transition-all ripple">
+            GET LIFETIME ACCESS
+          </button>
+          <button onClick=${onClose} className="w-full mt-4 text-white/60 text-xs font-medium uppercase tracking-widest">Maybe later</button>
         </div>
       </div>
     </div>
@@ -367,8 +297,6 @@ export default function App() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
-  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
-  const [legalType, setLegalType] = useState('tos'); // 'tos' or 'privacy'
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [selectedTip, setSelectedTip] = useState(null);
@@ -378,30 +306,6 @@ export default function App() {
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [toast, setToast] = useState(null);
-
-  const showBanner = async () => {
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform() || isPremium) return;
-    try {
-      await AdMob.showBanner({
-        adId: ADMOB_BANNER_ID,
-        adSize: BannerAdSize.ADAPTIVE_BANNER,
-        position: BannerAdPosition.BOTTOM_CENTER,
-        margin: 0,
-        isTesting: true
-      });
-    } catch (e) {
-      console.error("AdMob Show Banner Error:", e);
-    }
-  };
-
-  const hideBanner = async () => {
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
-    try {
-      await AdMob.hideBanner();
-    } catch (e) {
-      console.error("AdMob Hide Banner Error:", e);
-    }
-  };
 
   const showToast = (message, icon = '✨') => {
     setToast({ message, icon });
@@ -484,20 +388,9 @@ export default function App() {
         } catch (e) {
           console.error("RevenueCat Init Error:", e);
         }
-
-        // Initialize AdMob
-        try {
-          await AdMob.initialize({
-            requestTrackingAuthorization: true,
-            testingDevices: ['2077ef9a63d2b398840261c8221a0c9b'],
-            initializeForTesting: true,
-          });
-        } catch (e) {
-          console.error("AdMob Init Error:", e);
-        }
       }
 
-      const [p, h, , lastReset, prem, themeKey, rew, allow, tourDone] = await Promise.all([
+      const [p, h, s, lastReset, prem, themeKey, rew, allow, tourDone] = await Promise.all([
         storage.get(PROFILES_KEY, []),
         storage.get(HISTORY_KEY, []),
         storage.get(STREAKS_KEY, {}),
@@ -531,16 +424,6 @@ export default function App() {
     initApp();
   }, []);
 
-  useEffect(() => {
-    if (isDbReady) {
-      if (isPremium) {
-        hideBanner();
-      } else {
-        showBanner();
-      }
-    }
-  }, [isPremium, isDbReady]);
-
   useEffect(() => { if (isDbReady) storage.set(PROFILES_KEY, profiles); }, [profiles, isDbReady]);
   useEffect(() => { if (isDbReady) storage.set(TASKS_KEY, tasks); }, [tasks, isDbReady]);
   useEffect(() => { if (isDbReady) storage.set(HISTORY_KEY, history); }, [history, isDbReady]);
@@ -572,13 +455,18 @@ export default function App() {
   };
 
   const handleAddProfile = (name, role, avatar) => {
+    const kidsCount = profiles.filter(p => p.role === Role.CHILD).length;
+    if (!isPremium && role === Role.CHILD && kidsCount >= 2) {
+      setIsPremiumModalOpen(true);
+      return;
+    }
     const newProfile = { id: Date.now().toString(), name, role, avatar, stars: 0 };
     setProfiles([...profiles, newProfile]);
     setIsProfileModalOpen(false);
     triggerHaptic(20);
   };
 
-  const handleUpgrade = async (amount = '$4.99') => {
+  const handleUpgrade = async () => {
     setUpgradeSuccess(true);
     triggerHaptic([50, 50, 100]);
     
@@ -587,7 +475,6 @@ export default function App() {
         // Real Google Play Purchase via RevenueCat
         const offerings = await Purchases.getOfferings();
         if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
-          // In a real app, we'd match the 'amount' to a specific package
           const purchaseResult = await Purchases.purchasePackage({ 
             aPackage: offerings.current.availablePackages[0] 
           });
@@ -603,7 +490,6 @@ export default function App() {
           await storage.set(PREMIUM_KEY, true);
           setIsPremiumModalOpen(false);
           setUpgradeSuccess(false);
-          showToast(`Thank you for your ${amount} donation!`, '❤️');
         }, 1500);
         return;
       }
@@ -659,10 +545,10 @@ export default function App() {
               <div onClick=${() => setIsPremiumModalOpen(true)} className="bg-gradient-to-r from-[#6750a4] to-[#3d4975] p-6 rounded-[32px] shadow-sm cursor-pointer active:scale-95 transition-all text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium">Support SuperParent</h3>
-                    <p className="text-[10px] opacity-70 font-medium uppercase tracking-wider">Remove ads & support development</p>
+                    <h3 className="font-medium">Get Premium</h3>
+                    <p className="text-[10px] opacity-70 font-medium uppercase tracking-wider">Unlimited kids, tasks & store</p>
                   </div>
-                  <${Heart} size=${18} />
+                  <${ChevronRight} size=${18} />
                 </div>
               </div>
             `}
@@ -682,14 +568,11 @@ export default function App() {
                 `}
               </div>
             </div>
-
-            ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
           </div>
         `}
 
         ${activeTab === 'tasks' && html`
           <div className="space-y-4">
-            ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
             ${tasks.map(task => html`
               <div key=${task.id} className="bg-[#f7f2fa] rounded-[28px] p-6 border border-[#e7e0eb]/50">
                 <div className="flex justify-between items-start mb-4">
@@ -721,6 +604,7 @@ export default function App() {
             `)}
             <button 
               onClick=${() => {
+                if(!isPremium && tasks.length >= 5) { setIsPremiumModalOpen(true); return; }
                 setIsTaskModalOpen(true);
               }}
               className="fixed bottom-32 right-6 w-16 h-16 bg-[#d3e3fd] rounded-[24px] shadow-xl text-[#041e49] flex items-center justify-center active:scale-90 transition-all z-50 ripple"
@@ -732,36 +616,44 @@ export default function App() {
 
         ${activeTab === 'shop' && html`
           <div className="space-y-4">
-             ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
-             <div className="flex justify-between items-center mb-4 pt-2">
-               <h2 className="text-xl font-medium text-[#1c1b1f]">Star Store</h2>
-               <button onClick=${() => setIsRewardModalOpen(true)} className="p-2 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Plus} size=${20} /></button>
-             </div>
-             ${rewards.map(r => html`
-               <div key=${r.id} className="bg-[#f7f2fa] p-5 rounded-[32px] border border-[#e7e0eb] mb-4">
-                 <div className="flex justify-between items-center">
-                   <div className="flex items-center gap-4">
-                      <div className="text-4xl">${r.icon}</div>
-                      <div>
-                        <h4 className="font-medium text-[#1c1b1f]">${r.title}</h4>
-                        <span className="text-xs font-medium text-[#6750a4] uppercase tracking-widest">${r.cost} Stars</span>
-                      </div>
-                   </div>
-                   <div className="flex flex-col gap-2">
-                     ${profiles.filter(p => p.role === Role.CHILD).map(p => html`
-                       <button 
-                         key=${p.id}
-                         disabled=${p.stars < r.cost}
-                         onClick=${() => handleRedeemReward(r.id, p.id)}
-                         className=${`text-xs px-4 py-2 rounded-full font-medium ${p.stars >= r.cost ? 'bg-[#6750a4] text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}
-                       >
-                         ${p.name}
-                       </button>
-                     `)}
+            ${!isPremium ? html`
+              <div className="text-center py-20 bg-[#f7f2fa] rounded-[40px] border border-dashed border-[#e7e0eb] p-8 mt-4">
+                <${Lock} size=${40} className="mx-auto text-[#79747e]/40 mb-4" />
+                <h3 className="text-xl font-medium text-[#1c1b1f]">Star Store Locked</h3>
+                <p className="text-sm text-[#49454f] mt-2 mb-6">Upgrade to create custom real-world rewards for your kids.</p>
+                <button onClick=${() => setIsPremiumModalOpen(true)} className="bg-[#6750a4] text-white px-8 py-3 rounded-full font-medium shadow-sm">Get SuperParent Pro</button>
+              </div>
+            ` : html`
+               <div className="flex justify-between items-center mb-4 pt-2">
+                 <h2 className="text-xl font-medium text-[#1c1b1f]">Star Store</h2>
+                 <button onClick=${() => setIsRewardModalOpen(true)} className="p-2 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Plus} size=${20} /></button>
+               </div>
+               ${rewards.map(r => html`
+                 <div key=${r.id} className="bg-[#f7f2fa] p-5 rounded-[32px] border border-[#e7e0eb] mb-4">
+                   <div className="flex justify-between items-center">
+                     <div className="flex items-center gap-4">
+                        <div className="text-4xl">${r.icon}</div>
+                        <div>
+                          <h4 className="font-medium text-[#1c1b1f]">${r.title}</h4>
+                          <span className="text-xs font-medium text-[#6750a4] uppercase tracking-widest">${r.cost} Stars</span>
+                        </div>
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       ${profiles.filter(p => p.role === Role.CHILD).map(p => html`
+                         <button 
+                           key=${p.id}
+                           disabled=${p.stars < r.cost}
+                           onClick=${() => handleRedeemReward(r.id, p.id)}
+                           className=${`text-xs px-4 py-2 rounded-full font-medium ${p.stars >= r.cost ? 'bg-[#6750a4] text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}
+                         >
+                           ${p.name}
+                         </button>
+                       `)}
+                     </div>
                    </div>
                  </div>
-               </div>
-             `)}
+               `)}
+            `}
           </div>
         `}
 
@@ -789,7 +681,11 @@ export default function App() {
                 ${PARENTING_TIPS.map(tip => html`
                   <div key=${tip.id} 
                        onClick=${() => {
-                         setSelectedTip(tip);
+                         if (!isPremium && tip.id !== 'p1') {
+                           setIsPremiumModalOpen(true);
+                         } else {
+                           setSelectedTip(tip);
+                         }
                        }}
                        className="group relative overflow-hidden rounded-[32px] bg-white p-6 shadow-sm border border-[#e7e0eb] active:scale-[0.98] transition-all cursor-pointer">
                     <div className="flex items-start justify-between">
@@ -802,12 +698,11 @@ export default function App() {
                         <p className="mt-1 text-xs text-[#79747e] font-medium">By ${tip.author}</p>
                       </div>
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f7f2fa] text-[#6750a4]">
-                        <${ChevronRight} size=${18} />
+                        ${!isPremium && tip.id !== 'p1' ? html`<${Lock} size=${16} />` : html`<${ChevronRight} size=${18} />`}
                       </div>
                     </div>
                   </div>
                 `)}
-                ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
               </div>
             </section>
 
@@ -825,7 +720,7 @@ export default function App() {
                 ${EXPERT_QA.map(qa => html`
                   <div className="rounded-2xl bg-white/60 p-4 border border-white/40">
                     <p className="text-sm font-bold text-[#1c1b1f] mb-1">Q: ${qa.q}</p>
-                    <p className="text-sm text-[#49454f] leading-relaxed">${qa.a}</p>
+                    <p className="text-sm text-[#49454f] leading-relaxed">${isPremium ? qa.a : 'Upgrade to Pro to see expert answers...'}</p>
                   </div>
                 `)}
               </div>
@@ -833,73 +728,50 @@ export default function App() {
 
             <div className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 text-white shadow-xl">
               <div className="relative z-10">
-                <${Heart} className="mb-4 text-[#d3e3fd]" fill=${isPremium ? '#d3e3fd' : 'none'} />
-                <h3 className="text-2xl font-medium mb-2">${isPremium ? 'Thank You, Supporter!' : 'Support SuperParent'}</h3>
+                <${Heart} className="mb-4 text-[#d3e3fd]" />
+                <h3 className="text-2xl font-medium mb-2">${isPremium ? 'Pro Community' : 'Join the Inner Circle'}</h3>
                 <p className="text-sm opacity-80 mb-6 leading-relaxed">
                   ${isPremium 
-                    ? 'Your contribution keeps SuperParent free and accessible for families worldwide. You are helping us build a better future for kids.' 
-                    : 'We have moved to a community-supported model. Your support helps us maintain expert content and lets you enjoy an ad-free experience.'}
+                    ? 'You have direct access to our monthly webinars and private forum. New expert content drops every Tuesday.' 
+                    : 'Get direct access to child psychologists, monthly live Q&As, and our private community of 5,000+ parents.'}
                 </p>
-                <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full rounded-full bg-white py-4 font-medium text-[#6750a4] shadow-lg active:scale-95 transition-all">
-                  ${isPremium ? 'View Support Options' : 'Support the App'}
-                </button>
+                ${!isPremium ? html`
+                  <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full rounded-full bg-white py-4 font-medium text-[#6750a4] shadow-lg active:scale-95 transition-all">
+                    Unlock Expert Access
+                  </button>
+                ` : html`
+                  <div className="flex items-center gap-2 rounded-2xl bg-white/20 p-4 justify-center font-medium">
+                    <${CheckCircle2} size=${20} /> Pro Membership Active
+                  </div>
+                `}
               </div>
             </div>
           </div>
         `}
 
         ${activeTab === 'profiles' && html`
-          <div className="space-y-6 pb-20">
-            <div className="flex justify-between items-center px-2">
-              <h2 className="text-2xl font-medium text-[#1c1b1f]">Your Team</h2>
-              <button onClick=${() => setIsProfileModalOpen(true)} className="p-3 bg-[#6750a4] text-white rounded-2xl shadow-lg active:scale-90 transition-all">
-                <${UserPlus} size=${20} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              ${profiles.map(p => html`
-                <div key=${p.id} className="bg-white p-6 rounded-[32px] border border-[#e7e0eb] shadow-sm flex flex-col items-center text-center relative overflow-hidden group">
-                  <div className="text-5xl mb-3 bg-white w-20 h-20 flex items-center justify-center rounded-full mx-auto shadow-sm group-hover:scale-110 transition-transform">${p.avatar}</div>
-                  <h3 className="font-medium text-[#1c1b1f]">${p.name}</h3>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#79747e] mt-1">${p.role}</span>
-                  <div className="mt-4 flex items-center gap-1 text-[#6750a4] font-bold">
-                    <${Star} size=${14} fill="#6750a4" /> ${p.stars || 0}
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            ${profiles.map(p => html`
+              <div className="bg-[#f7f2fa] rounded-[32px] p-6 text-center border border-[#e7e0eb]">
+                <div className="text-5xl mb-3 bg-white w-20 h-20 flex items-center justify-center rounded-full mx-auto shadow-sm">${p.avatar}</div>
+                <div className="font-medium text-lg text-[#1c1b1f]">${p.name}</div>
+                <div style=${{ color: currentTheme.primary }} className="mt-4 text-xl font-medium flex items-center justify-center gap-1">
+                  <${Star} size={18} fill=${currentTheme.primary} /> ${p.stars || 0}
+                </div>
+                ${allowanceSettings.enabled && p.role === Role.CHILD && html`
+                  <div className="mt-2 text-sm font-bold text-green-600 flex items-center justify-center gap-1">
+                    <${CreditCard} size=${14} /> ${formatCash(p.stars || 0)}
                   </div>
-                </div>
-              `)}
-            </div>
-
-            <div className="mt-8 pt-8 border-t border-[#e7e0eb] space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[#79747e] px-2">App Support</h3>
-              
-              <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full flex items-center justify-between p-5 bg-[#f3edf7] rounded-[24px] text-[#6750a4] font-medium active:scale-[0.98] transition-all">
-                <div className="flex items-center gap-3">
-                  <${Heart} size=${20} fill=${isPremium ? '#6750a4' : 'none'} />
-                  <span>${isPremium ? 'Pro Supporter' : 'Support the App'}</span>
-                </div>
-                <${ChevronRight} size=${18} />
-              </button>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick=${() => { setLegalType('tos'); setIsLegalModalOpen(true); }}
-                  className="p-4 bg-white border border-[#e7e0eb] rounded-[24px] text-xs font-medium text-[#49454f] flex items-center justify-center gap-2"
-                >
-                  <${FileText} size=${14} /> Terms
-                </button>
-                <button 
-                  onClick=${() => { setLegalType('privacy'); setIsLegalModalOpen(true); }}
-                  className="p-4 bg-white border border-[#e7e0eb] rounded-[24px] text-xs font-medium text-[#49454f] flex items-center justify-center gap-2"
-                >
-                  <${Shield} size=${14} /> Privacy
-                </button>
+                `}
               </div>
-
-              <div className="text-center pt-4">
-                <p className="text-[10px] text-[#79747e] font-medium uppercase tracking-[0.2em]">SuperParent v1.0.5</p>
-              </div>
-            </div>
+            `)}
+            <button 
+              onClick=${() => setIsProfileModalOpen(true)}
+              className="rounded-[32px] border-2 border-dashed border-[#e7e0eb] p-8 flex flex-col items-center justify-center text-[#79747e] active:bg-slate-50 transition-all"
+            >
+              <${UserPlus} size=${32} className="mb-2 opacity-50" />
+              <span className="text-[10px] font-medium uppercase tracking-widest">Add Member</span>
+            </button>
           </div>
         `}
 
@@ -1067,10 +939,11 @@ export default function App() {
           <div className="flex flex-wrap gap-3 justify-center">
             ${AVATARS.map(a => html`
               <label key=${a.char} className="relative">
-                <input type="radio" name="avatar" value=${a.char} defaultChecked=${a.char === AVATARS[0].char} className="hidden peer" />
-                <div className="w-14 h-14 flex items-center justify-center bg-white border border-[#e7e0eb] rounded-2xl text-2xl peer-checked:bg-[#e8def8] peer-checked:border-[#6750a4] transition-all shadow-sm cursor-pointer">
+                <input type="radio" name="avatar" value=${a.char} defaultChecked=${a.char === AVATARS[0].char} disabled=${!isPremium && a.premium} className="hidden peer" />
+                <div className=${`w-14 h-14 flex items-center justify-center bg-white border border-[#e7e0eb] rounded-2xl text-2xl peer-checked:bg-[#e8def8] peer-checked:border-[#6750a4] transition-all shadow-sm ${!isPremium && a.premium ? 'opacity-30' : 'cursor-pointer'}`}>
                   ${a.char}
                 </div>
+                ${!isPremium && a.premium && html`<div className="absolute -top-1 -right-1 bg-yellow-400 p-0.5 rounded-full shadow-md"><${Lock} size=${10} /></div>`}
               </label>
             `)}
           </div>
@@ -1130,31 +1003,18 @@ export default function App() {
         </form>
       <//>
 
-      <${M3BottomSheet} isOpen=${isPremiumModalOpen} onClose=${() => setIsPremiumModalOpen(false)} theme=${currentTheme} title="Support SuperParent">
+      <${M3BottomSheet} isOpen=${isPremiumModalOpen} onClose=${() => setIsPremiumModalOpen(false)} theme=${currentTheme} title="Pro Edition">
         ${upgradeSuccess ? html`
           <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-300">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
               <${Check} size=${48} />
             </div>
-            <h3 className="text-2xl font-medium text-[#1c1b1f] mb-2">Thank You!</h3>
-            <p className="text-[#49454f] font-medium opacity-70 px-8">Your support keeps SuperParent running for families everywhere.</p>
+            <h3 className="text-2xl font-medium text-[#1c1b1f] mb-2">Welcome to Pro!</h3>
+            <p className="text-[#49454f] font-medium opacity-70">Unlocking all features for your family...</p>
           </div>
         ` : html`
-          <${PremiumUpsell} onClose=${() => setIsPremiumModalOpen(false)} onUpgrade=${handleUpgrade} />
+          <${PremiumUpsell} onClose=${() => setIsPremiumModalOpen(false)} onUpgrade=${handleUpgrade} theme=${currentTheme} />
         `}
-      <//>
-
-      <${M3BottomSheet} isOpen=${isLegalModalOpen} onClose=${() => setIsLegalModalOpen(false)} theme=${currentTheme} title=${legalType === 'tos' ? 'Terms of Service' : 'Privacy Policy'}>
-        <div className="p-2 space-y-6 pb-10">
-          <div className="bg-[#f7f2fa] p-8 rounded-[32px] border border-[#e7e0eb]">
-            <p className="text-sm text-[#49454f] leading-relaxed whitespace-pre-line font-mono">
-              ${legalType === 'tos' ? TERMS_OF_SERVICE : PRIVACY_POLICY}
-            </p>
-          </div>
-          <button onClick=${() => setIsLegalModalOpen(false)} className="w-full rounded-full bg-[#6750a4] py-4 font-medium text-white shadow-md">
-            I Understand
-          </button>
-        </div>
       <//>
 
       <${M3BottomSheet} isOpen=${!!selectedTip} onClose=${() => setSelectedTip(null)} theme=${currentTheme} title="Expert Guide">

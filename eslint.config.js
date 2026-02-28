@@ -1,5 +1,7 @@
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 export default [
   {
@@ -7,8 +9,10 @@ export default [
     plugins: {
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
+      '@typescript-eslint': tsPlugin,
     },
     languageOptions: {
+      parser: tsParser,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -31,6 +35,7 @@ export default [
         MessageEvent: 'readonly',
         clearTimeout: 'readonly',
         alert: 'readonly',
+        requestAnimationFrame: 'readonly',
       },
     },
     rules: {
@@ -47,4 +52,15 @@ export default [
       },
     },
   },
+  {
+    files: ['sw.js', 'www/sw.js'],
+    languageOptions: {
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        fetch: 'readonly',
+        console: 'readonly',
+      },
+    },
+  }
 ];
