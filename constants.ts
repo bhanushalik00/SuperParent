@@ -1,5 +1,5 @@
 
-import { Role, TaskType, Task } from './types';
+import { TaskType, Task } from './types';
 
 export const COLORS = {
   PARENT: 'indigo',

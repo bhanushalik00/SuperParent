@@ -10,8 +10,7 @@ import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { 
   AdMob, 
   BannerAdSize, 
-  BannerAdPosition, 
-  BannerAdPluginEvents 
+  BannerAdPosition 
 } from '@capacitor-community/admob';
 import { storage } from './services/storage.js';
 
@@ -282,7 +281,7 @@ const M3BottomSheet = ({ isOpen, onClose, title, children, theme }) => {
   `;
 };
 
-const AdBanner = ({ theme }) => {
+const AdBanner = () => {
   const sponsors = [
     { name: 'HealthyKids Snacks', icon: '🍎' },
     { name: 'EcoToys Collective', icon: '🧸' },
@@ -379,7 +378,7 @@ export default function App() {
   const [tourStep, setTourStep] = useState(0);
   const [toast, setToast] = useState(null);
 
-  const showBanner = async () => {
+  const showBanner = React.useCallback(async () => {
     if (!window.Capacitor || !window.Capacitor.isNativePlatform() || isPremium) return;
     try {
       await AdMob.showBanner({
@@ -392,16 +391,16 @@ export default function App() {
     } catch (e) {
       console.error("AdMob Show Banner Error:", e);
     }
-  };
+  }, [isPremium]);
 
-  const hideBanner = async () => {
+  const hideBanner = React.useCallback(async () => {
     if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
     try {
       await AdMob.hideBanner();
     } catch (e) {
       console.error("AdMob Hide Banner Error:", e);
     }
-  };
+  }, []);
 
   const showToast = (message, icon = '✨') => {
     setToast({ message, icon });
@@ -539,7 +538,7 @@ export default function App() {
         showBanner();
       }
     }
-  }, [isPremium, isDbReady]);
+  }, [isPremium, isDbReady, showBanner, hideBanner]);
 
   useEffect(() => { if (isDbReady) storage.set(PROFILES_KEY, profiles); }, [profiles, isDbReady]);
   useEffect(() => { if (isDbReady) storage.set(TASKS_KEY, tasks); }, [tasks, isDbReady]);

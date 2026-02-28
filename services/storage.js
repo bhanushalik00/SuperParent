@@ -2,7 +2,7 @@ import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 
 const DB_NAME = 'superparent_secure_store';
-const sqlite = new SQLiteConnection(CapacitorSQLite);
+let sqlite = null;
 let db = null;
 
 export const storage = {
@@ -10,6 +10,9 @@ export const storage = {
     if (db || !Capacitor.isNativePlatform()) return;
     
     try {
+      if (!sqlite) {
+        sqlite = new SQLiteConnection(CapacitorSQLite);
+      }
       db = await sqlite.createConnection(DB_NAME, false, "no-encryption", 1, false);
       await db.open();
 
