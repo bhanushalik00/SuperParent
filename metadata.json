@@ -1,6 +1,6 @@
 {
-  "name": "SuperParent",
-  "description": "Practical Parenting App.",
+  "name": "SuperParent: Family Chore & Habit Tracker",
+  "description": "The ultimate family management tool for parents of kids 4+. Track chores, manage allowances, and build healthy habits with positive reinforcement.",
   "requestFramePermissions": [],
   "permissions": [
     "vibrate"

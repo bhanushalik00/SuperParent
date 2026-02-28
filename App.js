@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { 
-  Plus, Settings, Home, List, Trophy, Lock, UserPlus, 
-  User, CheckCircle2, Star, History, Trash2, X, WifiOff, CloudOff, 
-  AlertTriangle, ShoppingBag, Palette, Crown, ChevronRight, Check
+  Plus, Settings, Home, List, Lock, UserPlus, 
+  User, CheckCircle2, Star, Trash2, X, WifiOff, 
+  AlertTriangle, ShoppingBag, Palette, ChevronRight, Check,
+  BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield
 } from 'lucide-react';
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { storage } from './services/storage.js';
 
 const html = htm.bind(React.createElement);
@@ -21,6 +23,8 @@ const LAST_RESET_KEY = 'superparent_last_reset';
 const PREMIUM_KEY = 'superparent_is_premium';
 const REWARDS_KEY = 'superparent_rewards';
 const THEME_KEY = 'superparent_theme';
+const ALLOWANCE_KEY = 'superparent_allowance_settings';
+const TOUR_COMPLETED_KEY = 'superparent_tour_completed';
 
 const AVATARS = [
   { char: '🦁', premium: false }, { char: '🐘', premium: false }, 
@@ -41,8 +45,90 @@ const THEMES = {
 
 const DEFAULT_TASKS = [
   { id: 't1', title: 'Brush Teeth', description: 'Clean your teeth for 2 minutes', type: TaskType.INDIVIDUAL, starValue: 2, completedBy: [], isRecurring: 'daily' },
-  { id: 't2', title: 'Finish Homework', description: 'All school work done for the day', type: TaskType.INDIVIDUAL, starValue: 5, completedBy: [], isRecurring: 'daily' },
-  { id: 't3', title: 'Morning Walk', description: 'Parent & Child walk together', type: TaskType.JOINT, starValue: 10, completedBy: [], isRecurring: 'daily' }
+  { id: 't2', title: 'Pack School Bag', description: 'Check your schedule and pack everything', type: TaskType.INDIVIDUAL, starValue: 3, completedBy: [], isRecurring: 'daily' },
+  { id: 't3', title: '15 Mins Reading', description: 'Read a book of your choice', type: TaskType.INDIVIDUAL, starValue: 5, completedBy: [], isRecurring: 'daily' },
+  { id: 't4', title: 'Family Dinner Help', description: 'Help set or clear the table', type: TaskType.JOINT, starValue: 10, completedBy: [], isRecurring: 'daily' }
+];
+
+const TERMS_OF_SERVICE = `
+1. ACCEPTANCE OF TERMS
+By using SuperParent, you agree to these terms. If you do not agree, do not use the app.
+
+2. DESCRIPTION OF SERVICE
+SuperParent is a tool for family organization and parenting education. Content is for informational purposes only.
+
+3. USER CONDUCT
+You are responsible for the data you enter. Do not use the app for any illegal purposes.
+
+4. SUBSCRIPTIONS & SUPPORT
+Payments made via the app are processed by Google Play. "Donations" or "Support" payments are voluntary and non-refundable.
+
+5. LIMITATION OF LIABILITY
+SuperParent is provided "as is" without warranties of any kind.
+`;
+
+const PRIVACY_POLICY = `
+1. DATA COLLECTION
+We store your family profiles, tasks, and history locally on your device. We do not sell your personal data.
+
+2. THIRD-PARTY SERVICES
+We use RevenueCat and Google Play to process payments. These services may collect data according to their own policies.
+
+3. SECURITY
+We take reasonable measures to protect your data, but no method of electronic storage is 100% secure.
+
+4. CHILDREN'S PRIVACY
+This app is intended for use by parents. We do not knowingly collect data from children under 13 without parental consent.
+`;
+
+const PARENTING_TIPS = [
+  { 
+    id: 'p1', 
+    age: '4-6', 
+    title: 'Handling Big Emotions', 
+    author: 'Dr. Sarah Chen, Child Psychologist',
+    readTime: '5 min read',
+    content: 'At this age, kids are still learning to regulate. Use "co-regulation" by staying calm yourself first.',
+    details: 'When your child has a meltdown, their logical brain is offline. Instead of reasoning, try: \n1. Get on their eye level. \n2. Use a soft voice. \n3. Validate: "I see you are really frustrated." \nOnce they are calm, then you can talk about what happened.',
+    actionPlan: [
+      'Identify triggers (hunger, tiredness, transitions)',
+      'Create a "Calm Down Corner" with soft pillows',
+      'Practice deep breathing exercises during calm times'
+    ]
+  },
+  { 
+    id: 'p2', 
+    age: '7-9', 
+    title: 'Building Independence', 
+    author: 'Mark Thompson, Educator',
+    readTime: '7 min read',
+    content: 'Give them small responsibilities like packing their own lunch to boost confidence.',
+    details: 'Independence is built through small wins. \n- Let them choose their clothes (even if they don\'t match). \n- Teach them to use the toaster or make a sandwich. \n- Encourage them to solve their own small conflicts with friends before stepping in.',
+    actionPlan: [
+      'Assign one "Big Kid" chore per week',
+      'Let them manage a small weekly budget',
+      'Encourage self-correction before offering help'
+    ]
+  },
+  { 
+    id: 'p3', 
+    age: '10+', 
+    title: 'Digital Safety', 
+    author: 'Jessica Lee, Cyber-Safety Expert',
+    readTime: '10 min read',
+    content: 'Start conversations about online privacy early. Set clear boundaries for screen time.',
+    details: 'The "Digital Handshake" rule: \n- No devices in bedrooms at night. \n- Parents have passwords to all accounts. \n- Discuss "Permanent Footprints": anything posted online stays there. \n- Focus on being a "Digital Citizen" rather than just restricting time.',
+    actionPlan: [
+      'Draft a "Family Media Contract"',
+      'Set up parental controls on all devices',
+      'Schedule "Tech-Free" family hours daily'
+    ]
+  }
+];
+
+const EXPERT_QA = [
+  { q: "How do I stop the bedtime battles?", a: "Consistency is key. A 30-minute wind-down routine without screens is essential for melatonin production." },
+  { q: "My child refuses to do chores. What now?", a: "Tie chores to privileges, not just money. 'First chores, then screen time' is a powerful motivator." }
 ];
 
 const DEFAULT_REWARDS = [
@@ -189,34 +275,36 @@ const M3BottomSheet = ({ isOpen, onClose, title, children, theme }) => {
   `;
 };
 
-const PremiumUpsell = ({ onClose, onUpgrade, theme }) => {
+const PremiumUpsell = ({ onClose, onUpgrade }) => {
   return html`
     <div className="px-2">
-      <div className="bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 rounded-[40px] text-white shadow-xl relative overflow-hidden">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-             <div className="bg-white/20 p-2 rounded-xl"><${Crown} size=${20} /></div>
-             <span className="font-medium text-xs tracking-wider">PREMIUM EDITION</span>
+          <div className="flex items-center gap-3 mb-6">
+             <div className="bg-white/20 p-2 rounded-xl"><${Heart} size=${20} fill="white" /></div>
+             <span className="font-bold text-[10px] tracking-[0.2em] uppercase">Community Supported</span>
           </div>
-          <h3 className="text-2xl font-medium mb-2">Unleash Full Potential</h3>
-          <p className="text-sm opacity-80 mb-6 leading-relaxed">Upgrade to unlock unlimited family members, the Star Store, exclusive themes, and pro avatars.</p>
+          <h3 className="text-3xl font-medium mb-3 leading-tight">Help us keep <br/> SuperParent Ad-Free</h3>
+          <p className="text-sm opacity-80 mb-8 leading-relaxed">We don't sell your data or show ads. Your support helps us pay for expert parenting content and keep the app running for everyone.</p>
           
-          <div className="space-y-3 mb-8">
+          <div className="space-y-4 mb-10">
             ${[
-              'Unlimited Family Profiles',
-              'Star Rewards Store access',
-              'Exclusive Themes & Avatars'
+              'Unlock Unlimited Parents & Kids',
+              'Access Full Expert Action Plans',
+              'Create Custom Star Store Rewards',
+              'Support Independent Development'
             ].map(f => html`
               <div key=${f} className="flex items-center gap-3 text-sm font-medium">
-                <${CheckCircle2} size=${16} className="text-[#d3e3fd]" /> ${f}
+                <${CheckCircle2} size=${18} className="text-[#d3e3fd]" /> ${f}
               </div>
             `)}
           </div>
 
-          <button onClick=${onUpgrade} className="w-full bg-white text-[#6750a4] py-4 rounded-full font-medium shadow-lg active:scale-95 transition-all ripple">
-            GET LIFETIME ACCESS
+          <button onClick=${onUpgrade} className="w-full bg-white text-[#6750a4] py-5 rounded-full font-bold shadow-lg active:scale-95 transition-all ripple">
+            SUPPORT THE APP — $4.99
           </button>
-          <button onClick=${onClose} className="w-full mt-4 text-white/60 text-xs font-medium uppercase tracking-widest">Maybe later</button>
+          <button onClick=${onClose} className="w-full mt-6 text-white/60 text-[10px] font-bold uppercase tracking-[0.2em]">Maybe later</button>
         </div>
       </div>
     </div>
@@ -240,20 +328,111 @@ export default function App() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalType, setLegalType] = useState('tos'); // 'tos' or 'privacy'
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [selectedTip, setSelectedTip] = useState(null);
+  const [upgradeSuccess, setUpgradeSuccess] = useState(false);
+  const [allowanceSettings, setAllowanceSettings] = useState({ enabled: false, currency: '$', ratio: 10 });
+  const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, icon = '✨') => {
+    setToast({ message, icon });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const tourSteps = [
+    { 
+      target: 'dashboard', 
+      title: 'Welcome to SuperParent! 🐶', 
+      content: 'I\'m your parenting sidekick. Let\'s take a quick tour of your new command center.' 
+    },
+    { 
+      target: 'dashboard', 
+      title: 'The Scoreboard ⭐️', 
+      content: 'Track total stars earned by parents and kids. Stars are the currency of good habits!' 
+    },
+    { 
+      target: 'tasks', 
+      title: 'Daily Goals 📝', 
+      content: 'This is where the magic happens. Kids complete tasks here to earn stars for their hard work.' 
+    },
+    { 
+      target: 'shop', 
+      title: 'The Star Store 🎁', 
+      content: 'Trade stars for real-world rewards like extra screen time or a special treat. You decide the prizes!' 
+    },
+    { 
+      target: 'hub', 
+      title: 'Parenting Hub 💡', 
+      content: 'Get expert tips on handling big emotions, building independence, and digital safety for kids 4+.' 
+    },
+    { 
+      target: 'profiles', 
+      title: 'Your Team 👨‍👩‍👧‍👦', 
+      content: 'Manage your family profiles here. Everyone gets their own avatar and star balance.' 
+    },
+    { 
+      target: 'settings', 
+      title: 'Pro Power ⚙️', 
+      content: 'In Settings, you can enable Allowance Mode to turn stars into virtual cash, or change your app theme!' 
+    }
+  ];
+
+  const nextTourStep = () => {
+    triggerHaptic(10);
+    if (tourStep < tourSteps.length - 1) {
+      const nextStep = tourStep + 1;
+      setTourStep(nextStep);
+      setActiveTab(tourSteps[nextStep].target);
+    } else {
+      completeTour();
+    }
+  };
+
+  const completeTour = async () => {
+    setShowTour(false);
+    await storage.set(TOUR_COMPLETED_KEY, true);
+    triggerHaptic([50, 50]);
+  };
 
   useEffect(() => {
     const initApp = async () => {
       await storage.init();
-      const [p, h, s, lastReset, prem, themeKey, rew] = await Promise.all([
+      
+      // Initialize RevenueCat (Mock for Web, Real for Android)
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        try {
+          await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+          await Purchases.configure({ 
+            apiKey: "goog_YOUR_GOOGLE_PLAY_API_KEY", // Replace with your RevenueCat Google API Key
+          });
+          
+          // Check if user is already premium via RevenueCat
+          const customerInfo = await Purchases.getCustomerInfo();
+          if (customerInfo.entitlements.active['pro_access']) {
+            setIsPremium(true);
+            await storage.set(PREMIUM_KEY, true);
+          }
+        } catch (e) {
+          console.error("RevenueCat Init Error:", e);
+        }
+      }
+
+      const [p, h, , lastReset, prem, themeKey, rew, allow, tourDone] = await Promise.all([
         storage.get(PROFILES_KEY, []),
         storage.get(HISTORY_KEY, []),
         storage.get(STREAKS_KEY, {}),
         storage.get(LAST_RESET_KEY, ''),
         storage.get(PREMIUM_KEY, false),
         storage.get(THEME_KEY, 'DEFAULT'),
-        storage.get(REWARDS_KEY, DEFAULT_REWARDS)
+        storage.get(REWARDS_KEY, DEFAULT_REWARDS),
+        storage.get(ALLOWANCE_KEY, { enabled: false, currency: '$', ratio: 10 }),
+        storage.get(TOUR_COMPLETED_KEY, false)
       ]);
       let t = await storage.get(TASKS_KEY, DEFAULT_TASKS);
       const today = new Date().toLocaleDateString('en-CA');
@@ -268,6 +447,11 @@ export default function App() {
       setIsPremium(prem);
       setCurrentTheme(THEMES[themeKey] || THEMES.DEFAULT);
       setRewards(rew);
+      setAllowanceSettings(allow);
+      if (!tourDone) {
+        setShowTour(true);
+        setActiveTab('dashboard');
+      }
       setIsDbReady(true);
     };
     initApp();
@@ -278,6 +462,7 @@ export default function App() {
   useEffect(() => { if (isDbReady) storage.set(HISTORY_KEY, history); }, [history, isDbReady]);
   useEffect(() => { if (isDbReady) storage.set(PREMIUM_KEY, isPremium); }, [isPremium, isDbReady]);
   useEffect(() => { if (isDbReady) storage.set(REWARDS_KEY, rewards); }, [rewards, isDbReady]);
+  useEffect(() => { if (isDbReady) storage.set(ALLOWANCE_KEY, allowanceSettings); }, [allowanceSettings, isDbReady]);
 
   const handleTaskCompletion = (taskId, profileId) => {
     const task = tasks.find(t => t.id === taskId);
@@ -289,6 +474,7 @@ export default function App() {
     setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, stars: (p.stars || 0) + task.starValue } : p));
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completedBy: [...t.completedBy, profileId] } : t));
     setMascotState(task.type === TaskType.JOINT ? 'JOINT_SUCCESS' : profile.role === Role.PARENT ? 'PARENT_SUCCESS' : 'CHILD_SUCCESS');
+    showToast(`${profile.name} earned ${task.starValue} stars!`, '⭐');
   };
 
   const handleRedeemReward = (rewardId, profileId) => {
@@ -298,14 +484,24 @@ export default function App() {
     triggerHaptic([100, 50, 100]);
     setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, stars: p.stars - reward.cost } : p));
     setMascotState('REWARD_REDEEMED');
+    showToast(`${profile.name} redeemed ${reward.title}!`, reward.icon || '🎁');
   };
 
   const handleAddProfile = (name, role, avatar) => {
     const kidsCount = profiles.filter(p => p.role === Role.CHILD).length;
-    if (!isPremium && role === Role.CHILD && kidsCount >= 2) {
-      setIsPremiumModalOpen(true);
-      return;
+    const parentsCount = profiles.filter(p => p.role === Role.PARENT).length;
+    
+    if (!isPremium) {
+      if (role === Role.CHILD && kidsCount >= 1) {
+        setIsPremiumModalOpen(true);
+        return;
+      }
+      if (role === Role.PARENT && parentsCount >= 1) {
+        setIsPremiumModalOpen(true);
+        return;
+      }
     }
+    
     const newProfile = { id: Date.now().toString(), name, role, avatar, stars: 0 };
     setProfiles([...profiles, newProfile]);
     setIsProfileModalOpen(false);
@@ -313,10 +509,39 @@ export default function App() {
   };
 
   const handleUpgrade = async () => {
-    setIsPremium(true);
-    await storage.set(PREMIUM_KEY, true);
-    setIsPremiumModalOpen(false);
+    setUpgradeSuccess(true);
     triggerHaptic([50, 50, 100]);
+    
+    try {
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        // Real Google Play Purchase via RevenueCat
+        const offerings = await Purchases.getOfferings();
+        if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+          const purchaseResult = await Purchases.purchasePackage({ 
+            aPackage: offerings.current.availablePackages[0] 
+          });
+          if (purchaseResult.customerInfo.entitlements.active['pro_access']) {
+            setIsPremium(true);
+            await storage.set(PREMIUM_KEY, true);
+          }
+        }
+      } else {
+        // Mock Mode for Preview Environment
+        setTimeout(async () => {
+          setIsPremium(true);
+          await storage.set(PREMIUM_KEY, true);
+          setIsPremiumModalOpen(false);
+          setUpgradeSuccess(false);
+        }, 1500);
+        return;
+      }
+    } catch (e) {
+      console.error("Purchase Error:", e);
+      alert("Purchase failed. Please try again.");
+    }
+    
+    setUpgradeSuccess(false);
+    setIsPremiumModalOpen(false);
   };
 
   const handleFactoryReset = async () => {
@@ -327,6 +552,12 @@ export default function App() {
 
   const parentStars = profiles.filter(p => p.role === Role.PARENT).reduce((s, p) => s + (p.stars || 0), 0);
   const childStars = profiles.filter(p => p.role === Role.CHILD).reduce((s, p) => s + (p.stars || 0), 0);
+
+  const formatCash = (stars) => {
+    if (!allowanceSettings.enabled) return null;
+    const amount = (stars / allowanceSettings.ratio).toFixed(2);
+    return `${allowanceSettings.currency}${amount}`;
+  };
 
   if (!isDbReady) return null;
   if (!isAuthenticated) return html`<${PinScreen} theme=${currentTheme} onUnlock=${() => setIsAuthenticated(true)} />`;
@@ -372,6 +603,11 @@ export default function App() {
               <div style=${{ backgroundColor: currentTheme.bg }} className="rounded-[32px] p-6 border border-[#e7e0eb]">
                 <div style=${{ color: currentTheme.primary }} className="text-[10px] font-medium uppercase tracking-widest opacity-80 mb-2">Kids</div>
                 <div className="text-3xl font-medium text-[#1c1b1f] flex items-center gap-2">${childStars} <${Star} size={24} fill=${currentTheme.primary} /></div>
+                ${allowanceSettings.enabled && html`
+                  <div className="mt-2 text-sm font-bold text-green-600 flex items-center gap-1">
+                    <${CreditCard} size=${14} /> ${formatCash(childStars)} Total
+                  </div>
+                `}
               </div>
             </div>
           </div>
@@ -463,29 +699,196 @@ export default function App() {
           </div>
         `}
 
-        ${activeTab === 'profiles' && html`
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            ${profiles.map(p => html`
-              <div className="bg-[#f7f2fa] rounded-[32px] p-6 text-center border border-[#e7e0eb]">
-                <div className="text-5xl mb-3 bg-white w-20 h-20 flex items-center justify-center rounded-full mx-auto shadow-sm">${p.avatar}</div>
-                <div className="font-medium text-lg text-[#1c1b1f]">${p.name}</div>
-                <div style=${{ color: currentTheme.primary }} className="mt-4 text-xl font-medium flex items-center justify-center gap-1">
-                  <${Star} size={18} fill=${currentTheme.primary} /> ${p.stars || 0}
+        ${activeTab === 'hub' && html`
+          <div className="space-y-8 pb-10">
+            <div className="relative overflow-hidden rounded-[40px] bg-[#1c1b1f] p-8 text-white shadow-2xl">
+              <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#6750a4]/20 blur-3xl"></div>
+              <div className="relative z-10">
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">Expert Access</span>
+                  <div className="h-1 w-1 rounded-full bg-white/40"></div>
+                  <span className="text-[10px] font-medium text-white/60">${isPremium ? 'Pro Member' : 'Guest Access'}</span>
+                </div>
+                <h2 className="text-3xl font-medium leading-tight">Parenting <br/> Intelligence</h2>
+                <p className="mt-2 text-sm text-white/60">Evidence-based strategies for modern families.</p>
+              </div>
+            </div>
+
+            <section>
+              <div className="mb-4 flex items-center justify-between px-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#79747e]">Featured Guides</h3>
+                <${ChevronRight} size=${16} className="text-[#79747e]" />
+              </div>
+              <div className="space-y-4">
+                ${PARENTING_TIPS.map(tip => html`
+                  <div key=${tip.id} 
+                       onClick=${() => {
+                         if (!isPremium && tip.id !== 'p1') {
+                           setIsPremiumModalOpen(true);
+                         } else {
+                           setSelectedTip(tip);
+                         }
+                       }}
+                       className="group relative overflow-hidden rounded-[32px] bg-white p-6 shadow-sm border border-[#e7e0eb] active:scale-[0.98] transition-all cursor-pointer">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="rounded-full bg-[#f3edf7] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#6750a4]">Ages ${tip.age}</span>
+                          <span className="text-[10px] font-medium text-[#79747e]">• ${tip.readTime}</span>
+                        </div>
+                        <h4 className="text-xl font-medium text-[#1c1b1f] group-hover:text-[#6750a4] transition-colors">${tip.title}</h4>
+                        <p className="mt-1 text-xs text-[#79747e] font-medium">By ${tip.author}</p>
+                      </div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f7f2fa] text-[#6750a4]">
+                        ${!isPremium && tip.id !== 'p1' ? html`<${Lock} size=${16} />` : html`<${ChevronRight} size=${18} />`}
+                      </div>
+                    </div>
+                  </div>
+                `)}
+              </div>
+            </section>
+
+            <section className="rounded-[40px] bg-[#f7f2fa] p-8 border border-[#e7e0eb]">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                  <${Lightbulb} className="text-yellow-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-[#1c1b1f]">Expert Q&A</h3>
+                  <p className="text-xs text-[#79747e]">Common challenges solved.</p>
                 </div>
               </div>
-            `)}
-            <button 
-              onClick=${() => setIsProfileModalOpen(true)}
-              className="rounded-[32px] border-2 border-dashed border-[#e7e0eb] p-8 flex flex-col items-center justify-center text-[#79747e] active:bg-slate-50 transition-all"
-            >
-              <${UserPlus} size=${32} className="mb-2 opacity-50" />
-              <span className="text-[10px] font-medium uppercase tracking-widest">Add Member</span>
-            </button>
+              <div className="space-y-4">
+                ${EXPERT_QA.map(qa => html`
+                  <div className="rounded-2xl bg-white/60 p-4 border border-white/40">
+                    <p className="text-sm font-bold text-[#1c1b1f] mb-1">Q: ${qa.q}</p>
+                    <p className="text-sm text-[#49454f] leading-relaxed">${isPremium ? qa.a : 'Upgrade to Pro to see expert answers...'}</p>
+                  </div>
+                `)}
+              </div>
+            </section>
+
+            <div className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 text-white shadow-xl">
+              <div className="relative z-10">
+                <${Heart} className="mb-4 text-[#d3e3fd]" />
+                <h3 className="text-2xl font-medium mb-2">${isPremium ? 'Pro Community' : 'Join the Inner Circle'}</h3>
+                <p className="text-sm opacity-80 mb-6 leading-relaxed">
+                  ${isPremium 
+                    ? 'You have direct access to our monthly webinars and private forum. New expert content drops every Tuesday.' 
+                    : 'Get direct access to child psychologists, monthly live Q&As, and our private community of 5,000+ parents.'}
+                </p>
+                ${!isPremium ? html`
+                  <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full rounded-full bg-white py-4 font-medium text-[#6750a4] shadow-lg active:scale-95 transition-all">
+                    Unlock Expert Access
+                  </button>
+                ` : html`
+                  <div className="flex items-center gap-2 rounded-2xl bg-white/20 p-4 justify-center font-medium">
+                    <${CheckCircle2} size=${20} /> Pro Membership Active
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `}
+
+        ${activeTab === 'profiles' && html`
+          <div className="space-y-6 pb-20">
+            <div className="flex justify-between items-center px-2">
+              <h2 className="text-2xl font-medium text-[#1c1b1f]">Your Team</h2>
+              <button onClick=${() => setIsProfileModalOpen(true)} className="p-3 bg-[#6750a4] text-white rounded-2xl shadow-lg active:scale-90 transition-all">
+                <${UserPlus} size=${20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              ${profiles.map(p => html`
+                <div key=${p.id} className="bg-white p-6 rounded-[32px] border border-[#e7e0eb] shadow-sm flex flex-col items-center text-center relative overflow-hidden group">
+                  <div className="text-5xl mb-3 bg-white w-20 h-20 flex items-center justify-center rounded-full mx-auto shadow-sm group-hover:scale-110 transition-transform">${p.avatar}</div>
+                  <h3 className="font-medium text-[#1c1b1f]">${p.name}</h3>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#79747e] mt-1">${p.role}</span>
+                  <div className="mt-4 flex items-center gap-1 text-[#6750a4] font-bold">
+                    <${Star} size=${14} fill="#6750a4" /> ${p.stars || 0}
+                  </div>
+                </div>
+              `)}
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-[#e7e0eb] space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-[#79747e] px-2">App Support</h3>
+              
+              <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full flex items-center justify-between p-5 bg-[#f3edf7] rounded-[24px] text-[#6750a4] font-medium active:scale-[0.98] transition-all">
+                <div className="flex items-center gap-3">
+                  <${Heart} size=${20} fill=${isPremium ? '#6750a4' : 'none'} />
+                  <span>${isPremium ? 'Pro Supporter' : 'Support the App'}</span>
+                </div>
+                <${ChevronRight} size=${18} />
+              </button>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick=${() => { setLegalType('tos'); setIsLegalModalOpen(true); }}
+                  className="p-4 bg-white border border-[#e7e0eb] rounded-[24px] text-xs font-medium text-[#49454f] flex items-center justify-center gap-2"
+                >
+                  <${FileText} size=${14} /> Terms
+                </button>
+                <button 
+                  onClick=${() => { setLegalType('privacy'); setIsLegalModalOpen(true); }}
+                  className="p-4 bg-white border border-[#e7e0eb] rounded-[24px] text-xs font-medium text-[#49454f] flex items-center justify-center gap-2"
+                >
+                  <${Shield} size=${14} /> Privacy
+                </button>
+              </div>
+
+              <div className="text-center pt-4">
+                <p className="text-[10px] text-[#79747e] font-medium uppercase tracking-[0.2em]">SuperParent v1.0.5</p>
+              </div>
+            </div>
           </div>
         `}
 
         ${activeTab === 'settings' && html`
           <div className="space-y-4 pt-2">
+            <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
+              <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${CreditCard} size=${20} /> Allowance Mode</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-white/40 rounded-2xl border border-transparent">
+                  <div>
+                    <div className="font-medium text-sm text-[#1c1b1f]">Enable Allowance</div>
+                    <div className="text-[10px] text-[#49454f] opacity-70">Convert stars to virtual cash</div>
+                  </div>
+                  <button 
+                    onClick=${() => {
+                      if (!isPremium) { setIsPremiumModalOpen(true); return; }
+                      setAllowanceSettings(prev => ({ ...prev, enabled: !prev.enabled }));
+                    }}
+                    className=${`w-12 h-6 rounded-full transition-all relative ${allowanceSettings.enabled ? 'bg-[#6750a4]' : 'bg-gray-300'}`}
+                  >
+                    <div className=${`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${allowanceSettings.enabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                
+                ${allowanceSettings.enabled && html`
+                  <button 
+                    onClick=${() => setIsAllowanceModalOpen(true)}
+                    className="w-full flex items-center justify-between p-4 bg-white shadow-sm rounded-2xl border border-[#e7e0eb]"
+                  >
+                    <span className="font-medium text-sm text-[#1c1b1f]">Configure Rates</span>
+                    <div className="flex items-center gap-2 text-[#6750a4] font-bold text-sm">
+                      ${allowanceSettings.ratio} Stars = ${allowanceSettings.currency}1.00
+                      <${ChevronRight} size=${16} />
+                    </div>
+                  </button>
+                `}
+                
+                ${!isPremium && html`
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                    <${Lock} size=${14} className="text-yellow-600" />
+                    <span className="text-[10px] font-medium text-yellow-700 uppercase tracking-wider">Pro Feature</span>
+                  </div>
+                `}
+              </div>
+            </div>
+
             <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
               <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${Palette} size=${20} /> Themes</h3>
               <div className="grid grid-cols-1 gap-2">
@@ -531,25 +934,63 @@ export default function App() {
         `}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#f3edf7]/95 backdrop-blur-md h-28 flex items-center justify-around px-4 border-t border-[#e7e0eb] z-[80] pb-6">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#f3edf7]/95 backdrop-blur-md h-28 flex items-center justify-around px-2 border-t border-[#e7e0eb] z-[80] pb-6">
         ${[
           { id: 'dashboard', icon: Home, label: 'Home' },
           { id: 'tasks', icon: List, label: 'Goals' },
           { id: 'shop', icon: ShoppingBag, label: 'Shop' },
+          { id: 'hub', icon: BookOpen, label: 'Hub' },
           { id: 'profiles', icon: User, label: 'Team' }
         ].map(tab => html`
           <button 
             key=${tab.id}
-            onClick=${() => setActiveTab(tab.id)} 
-            className=${`flex flex-col items-center gap-1 w-1/4 transition-all ${activeTab === tab.id ? 'text-[#6750a4]' : 'text-[#49454f]'}`}
+            onClick=${() => {
+              if (showTour) return;
+              setActiveTab(tab.id);
+            }} 
+            className=${`flex flex-col items-center gap-1 w-1/5 transition-all ${activeTab === tab.id ? 'text-[#6750a4]' : 'text-[#49454f]'}`}
           >
-            <div className=${`p-2 px-5 rounded-full transition-all ${activeTab === tab.id ? 'bg-[#e8def8]' : ''}`}>
-              <${tab.icon} size=${24} strokeWidth=${activeTab === tab.id ? 2 : 1.5} />
+            <div className=${`p-2 px-4 rounded-full transition-all ${activeTab === tab.id ? 'bg-[#e8def8]' : ''}`}>
+              <${tab.icon} size=${22} strokeWidth=${activeTab === tab.id ? 2 : 1.5} />
             </div>
             <span className="text-[10px] font-medium uppercase tracking-widest mt-1">${tab.label}</span>
           </button>
         `)}
       </nav>
+
+      ${toast && html`
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[300] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-[#1c1b1f] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+            <span className="text-xl">${toast.icon}</span>
+            <span className="text-sm font-medium">${toast.message}</span>
+          </div>
+        </div>
+      `}
+
+      ${showTour && html`
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-end p-6 bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-500">
+          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-32 relative animate-in slide-in-from-bottom-10 duration-500">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-6xl drop-shadow-lg">🐶</div>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-2xl font-medium text-[#1c1b1f] leading-tight">${tourSteps[tourStep].title}</h3>
+              <span className="text-[10px] font-bold text-[#6750a4] bg-[#e8def8] px-2 py-1 rounded-full">${tourStep + 1}/${tourSteps.length}</span>
+            </div>
+            <p className="text-[#49454f] leading-relaxed mb-8 font-medium opacity-80">${tourSteps[tourStep].content}</p>
+            <div className="flex gap-3">
+              <button onClick=${completeTour} className="flex-1 py-4 text-[#49454f] font-medium text-sm">Skip</button>
+              <button onClick=${nextTourStep} className="flex-[2] bg-[#6750a4] text-white py-4 rounded-full font-medium shadow-lg active:scale-95 transition-all ripple">
+                ${tourStep === tourSteps.length - 1 ? 'Get Started!' : 'Next'}
+              </button>
+            </div>
+          </div>
+          
+          <div className="fixed bottom-10 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
+            ${tourSteps.map((_, i) => html`
+              <div key=${i} className=${`h-1.5 rounded-full transition-all duration-300 ${i === tourStep ? 'w-8 bg-white' : 'w-1.5 bg-white/40'}`} />
+            `)}
+          </div>
+        </div>
+      `}
 
       <${M3BottomSheet} isOpen=${isProfileModalOpen} onClose=${() => setIsProfileModalOpen(false)} theme=${currentTheme} title="New Member">
         <form onSubmit=${(e) => {
@@ -633,8 +1074,99 @@ export default function App() {
         </form>
       <//>
 
-      <${M3BottomSheet} isOpen=${isPremiumModalOpen} onClose=${() => setIsPremiumModalOpen(false)} theme=${currentTheme} title="Pro Edition">
-        <${PremiumUpsell} onClose=${() => setIsPremiumModalOpen(false)} onUpgrade=${handleUpgrade} theme=${currentTheme} />
+      <${M3BottomSheet} isOpen=${isPremiumModalOpen} onClose=${() => setIsPremiumModalOpen(false)} theme=${currentTheme} title="Support SuperParent">
+        ${upgradeSuccess ? html`
+          <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-300">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
+              <${Check} size=${48} />
+            </div>
+            <h3 className="text-2xl font-medium text-[#1c1b1f] mb-2">Thank You!</h3>
+            <p className="text-[#49454f] font-medium opacity-70 px-8">Your support keeps SuperParent running for families everywhere.</p>
+          </div>
+        ` : html`
+          <${PremiumUpsell} onClose=${() => setIsPremiumModalOpen(false)} onUpgrade=${handleUpgrade} />
+        `}
+      <//>
+
+      <${M3BottomSheet} isOpen=${isLegalModalOpen} onClose=${() => setIsLegalModalOpen(false)} theme=${currentTheme} title=${legalType === 'tos' ? 'Terms of Service' : 'Privacy Policy'}>
+        <div className="p-2 space-y-6 pb-10">
+          <div className="bg-[#f7f2fa] p-8 rounded-[32px] border border-[#e7e0eb]">
+            <p className="text-sm text-[#49454f] leading-relaxed whitespace-pre-line font-mono">
+              ${legalType === 'tos' ? TERMS_OF_SERVICE : PRIVACY_POLICY}
+            </p>
+          </div>
+          <button onClick=${() => setIsLegalModalOpen(false)} className="w-full rounded-full bg-[#6750a4] py-4 font-medium text-white shadow-md">
+            I Understand
+          </button>
+        </div>
+      <//>
+
+      <${M3BottomSheet} isOpen=${!!selectedTip} onClose=${() => setSelectedTip(null)} theme=${currentTheme} title="Expert Guide">
+        <div className="p-2 space-y-8 pb-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="rounded-full bg-[#f3edf7] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#6750a4]">Ages ${selectedTip?.age}</span>
+              <div className="h-1 w-1 rounded-full bg-[#79747e]/40"></div>
+              <span className="text-xs font-medium text-[#79747e]">${selectedTip?.readTime}</span>
+            </div>
+            <${Lightbulb} size=${24} className="text-yellow-500" />
+          </div>
+          
+          <div>
+            <h3 className="text-3xl font-medium leading-tight text-[#1c1b1f]">${selectedTip?.title}</h3>
+            <p className="mt-2 text-sm font-medium text-[#79747e]">Written by ${selectedTip?.author}</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="rounded-[32px] bg-[#f7f2fa] p-8 border border-[#e7e0eb]">
+              <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-[#6750a4]">The Strategy</h4>
+              <p className="text-lg leading-relaxed text-[#49454f] whitespace-pre-line">
+                ${selectedTip?.details}
+              </p>
+            </div>
+
+            <div className="rounded-[32px] bg-white p-8 border border-[#e7e0eb] shadow-sm">
+              <h4 className="mb-6 text-xs font-bold uppercase tracking-widest text-[#6750a4]">Action Plan</h4>
+              <div className="space-y-4">
+                ${selectedTip?.actionPlan?.map((item, i) => html`
+                  <div key=${i} className="flex gap-4">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#6750a4] text-[10px] font-bold text-white">${i + 1}</div>
+                    <p className="text-sm font-medium text-[#49454f]">${item}</p>
+                  </div>
+                `)}
+              </div>
+            </div>
+          </div>
+
+          <button onClick=${() => setSelectedTip(null)} className="w-full rounded-full bg-[#6750a4] py-5 text-lg font-medium text-white shadow-lg active:scale-95 transition-all">
+            Mark as Read
+          </button>
+        </div>
+      <//>
+
+      <${M3BottomSheet} isOpen=${isAllowanceModalOpen} onClose=${() => setIsAllowanceModalOpen(false)} theme=${currentTheme} title="Allowance Settings">
+        <form onSubmit=${(e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          setAllowanceSettings(prev => ({
+            ...prev,
+            currency: fd.get('currency'),
+            ratio: parseInt(fd.get('ratio'))
+          }));
+          setIsAllowanceModalOpen(false);
+          triggerHaptic(20);
+        }} className="space-y-6 pb-10">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-[#49454f] uppercase tracking-widest ml-1">Currency Symbol</label>
+            <input name="currency" defaultValue=${allowanceSettings.currency} required className="w-full bg-white border border-[#e7e0eb] p-5 rounded-2xl text-lg outline-none" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-[#49454f] uppercase tracking-widest ml-1">Exchange Rate (Stars per ${allowanceSettings.currency}1.00)</label>
+            <input name="ratio" type="number" defaultValue=${allowanceSettings.ratio} required className="w-full bg-white border border-[#e7e0eb] p-5 rounded-2xl text-lg outline-none" />
+            <p className="text-[10px] text-[#49454f] opacity-70 ml-1 italic">Example: If set to 10, then 50 stars = ${allowanceSettings.currency}5.00</p>
+          </div>
+          <button type="submit" className="w-full bg-[#6750a4] text-white py-5 rounded-full font-medium text-lg shadow-lg ripple">Save Settings</button>
+        </form>
       <//>
 
       <${M3BottomSheet} isOpen=${isResetConfirmOpen} onClose=${() => setIsResetConfirmOpen(false)} theme=${currentTheme} title="Confirm Reset">
