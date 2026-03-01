@@ -41,6 +41,10 @@ class AdService {
       console.log('Mock Banner: Banner ad would show here on native');
       return;
     }
+    if (!this.isInitialized) {
+      console.warn('AdMob not initialized, skipping banner');
+      return;
+    }
 
     const options = {
       adId: this.adUnitIds.android.banner,

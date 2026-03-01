@@ -10,6 +10,10 @@ export const storage = {
     if (db || !Capacitor.isNativePlatform()) return;
     
     try {
+      if (!CapacitorSQLite) {
+        console.warn('SQLite plugin not found, falling back to localStorage');
+        return;
+      }
       if (!sqlite) {
         sqlite = new SQLiteConnection(CapacitorSQLite);
       }

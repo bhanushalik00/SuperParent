@@ -512,9 +512,9 @@ export default function App() {
   useEffect(() => {
     if (isDbReady) {
       if (isPremium) {
-        hideBanner();
+        // hideBanner(); (Disabled for Clean Version)
       } else {
-        showBanner();
+        // showBanner(); (Disabled for Clean Version)
       }
     }
   }, [isPremium, isDbReady, showBanner, hideBanner]);
