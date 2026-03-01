@@ -6,13 +6,13 @@ import {
   AlertTriangle, ShoppingBag, Palette, ChevronRight, Check,
   BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield
 } from 'lucide-react';
-import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { 
   AdMob, 
   BannerAdSize, 
   BannerAdPosition 
 } from '@capacitor-community/admob';
 import { storage } from './services/storage.js';
+import { billingService } from './services/billingService.js';
 
 const html = htm.bind(React.createElement);
 
@@ -306,11 +306,25 @@ const AdBanner = () => {
 };
 
 const PremiumUpsell = ({ onClose, onUpgrade }) => {
-  const donationOptions = [
-    { amount: '$0.99', label: 'Coffee' },
-    { amount: '$4.99', label: 'Lunch' },
-    { amount: '$9.99', label: 'Dinner' }
-  ];
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOfferings = async () => {
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const pkgs = await billingService.getOfferings();
+        setPackages(pkgs);
+      } else {
+        // Mock packages for web preview
+        setPackages([
+          { id: 'monthly', product: { priceString: '$0.99', title: 'Monthly Support' } },
+          { id: 'annual', product: { priceString: '$9.99', title: 'Annual Support' } }
+        ]);
+      }
+      setLoading(false);
+    };
+    fetchOfferings();
+  }, []);
 
   return html`
     <div className="px-2">
@@ -322,13 +336,16 @@ const PremiumUpsell = ({ onClose, onUpgrade }) => {
              <span className="font-bold text-[10px] tracking-[0.2em] uppercase">Community Supported</span>
           </div>
           <h3 className="text-3xl font-medium mb-3 leading-tight">Support <br/> SuperParent</h3>
-          <p className="text-sm opacity-80 mb-8 leading-relaxed">SuperParent is now free for everyone! If you find it helpful, please consider a small donation to enjoy an ad-free experience and support expert content.</p>
+          <p className="text-sm opacity-80 mb-8 leading-relaxed">SuperParent is free for everyone! If you find it helpful, please consider a small donation to enjoy an ad-free experience and support expert content.</p>
           
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            ${donationOptions.map(opt => html`
-              <button key=${opt.amount} onClick=${() => onUpgrade(opt.amount)} className="bg-white/10 hover:bg-white/20 p-4 rounded-2xl flex flex-col items-center gap-1 transition-all border border-white/10">
-                <span className="text-xs opacity-60">${opt.label}</span>
-                <span className="font-bold">${opt.amount}</span>
+          <div className="space-y-3 mb-8">
+            ${loading ? html`<div className="text-center py-4 opacity-50">Loading offerings...</div>` : packages.map(pkg => html`
+              <button key=${pkg.id} onClick=${() => onUpgrade(pkg)} className="w-full bg-white/10 hover:bg-white/20 p-5 rounded-2xl flex justify-between items-center transition-all border border-white/10 group">
+                <div className="text-left">
+                  <span className="block font-bold text-lg">${pkg.product.priceString}</span>
+                  <span className="text-[10px] opacity-60 uppercase tracking-wider">${pkg.product.title}</span>
+                </div>
+                <${ChevronRight} size=${20} className="opacity-40 group-hover:opacity-100 transition-all" />
               </button>
             `)}
           </div>
@@ -466,25 +483,16 @@ export default function App() {
     const initApp = async () => {
       await storage.init();
       
-      // Initialize RevenueCat (Mock for Web, Real for Android)
-      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        try {
-          await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
-          await Purchases.configure({ 
-            apiKey: "goog_YOUR_GOOGLE_PLAY_API_KEY", // Replace with your RevenueCat Google API Key
-          });
-          
-          // Check if user is already premium via RevenueCat
-          const customerInfo = await Purchases.getCustomerInfo();
-          if (customerInfo.entitlements.active['pro_access']) {
-            setIsPremium(true);
-            await storage.set(PREMIUM_KEY, true);
-          }
-        } catch (e) {
-          console.error("RevenueCat Init Error:", e);
-        }
+      // Initialize RevenueCat
+      await billingService.init();
+      const isPrem = await billingService.checkPremiumStatus();
+      if (isPrem) {
+        setIsPremium(true);
+        await storage.set(PREMIUM_KEY, true);
+      }
 
-        // Initialize AdMob
+      // Initialize AdMob
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         try {
           await AdMob.initialize({
             requestTrackingAuthorization: true,
@@ -577,32 +585,40 @@ export default function App() {
     triggerHaptic(20);
   };
 
-  const handleUpgrade = async (amount = '$4.99') => {
-    setUpgradeSuccess(true);
+  const handleUpgrade = async (pkg = null) => {
     triggerHaptic([50, 50, 100]);
     
     try {
       if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        // Real Google Play Purchase via RevenueCat
-        const offerings = await Purchases.getOfferings();
-        if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
-          // In a real app, we'd match the 'amount' to a specific package
-          const purchaseResult = await Purchases.purchasePackage({ 
-            aPackage: offerings.current.availablePackages[0] 
-          });
-          if (purchaseResult.customerInfo.entitlements.active['pro_access']) {
-            setIsPremium(true);
-            await storage.set(PREMIUM_KEY, true);
+        // Real Purchase via RevenueCat
+        let success = false;
+        if (pkg) {
+          success = await billingService.purchasePackage(pkg);
+        } else {
+          const offerings = await billingService.getOfferings();
+          if (offerings.length > 0) {
+            success = await billingService.purchasePackage(offerings[0]);
           }
+        }
+
+        if (success) {
+          setIsPremium(true);
+          await storage.set(PREMIUM_KEY, true);
+          setUpgradeSuccess(true);
+          setTimeout(() => {
+            setUpgradeSuccess(false);
+            setIsPremiumModalOpen(false);
+          }, 3000);
         }
       } else {
         // Mock Mode for Preview Environment
+        setUpgradeSuccess(true);
         setTimeout(async () => {
           setIsPremium(true);
           await storage.set(PREMIUM_KEY, true);
           setIsPremiumModalOpen(false);
           setUpgradeSuccess(false);
-          showToast(`Thank you for your ${amount} donation!`, '❤️');
+          showToast(`Thank you for your support!`, '❤️');
         }, 1500);
         return;
       }
@@ -610,9 +626,17 @@ export default function App() {
       console.error("Purchase Error:", e);
       alert("Purchase failed. Please try again.");
     }
-    
-    setUpgradeSuccess(false);
-    setIsPremiumModalOpen(false);
+  };
+
+  const handleRestore = async () => {
+    const success = await billingService.restorePurchases();
+    if (success) {
+      setIsPremium(true);
+      await storage.set(PREMIUM_KEY, true);
+      showToast('Purchases restored successfully!', '✨');
+    } else {
+      showToast('No active subscriptions found.', '❌');
+    }
   };
 
   const handleFactoryReset = async () => {
@@ -643,9 +667,19 @@ export default function App() {
 
       <div className="flex-1 overflow-y-auto pb-36 px-6">
         <header className="pt-14 pb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-[32px] font-normal text-[#1c1b1f]">SuperParent</h1>
-            <p className="text-[#49454f] text-sm mt-1 font-medium">Practical Parenting App</p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#6750a4] rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
+              <img 
+                src="https://picsum.photos/seed/parent/200/200" 
+                alt="Logo" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <div>
+              <h1 className="text-[28px] font-normal text-[#1c1b1f] leading-tight">SuperParent</h1>
+              <p className="text-[#49454f] text-[10px] font-bold uppercase tracking-wider opacity-70">Practical Parenting</p>
+            </div>
           </div>
           <button onClick=${() => setActiveTab('settings')} className="p-3 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Settings} size=${20} /></button>
         </header>
@@ -904,6 +938,25 @@ export default function App() {
 
         ${activeTab === 'settings' && html`
           <div className="space-y-4 pt-2">
+            <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
+              <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${Shield} size=${20} /> Subscription</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-2xl border border-[#e7e0eb]">
+                  <div>
+                    <div className="font-medium text-sm text-[#1c1b1f]">Premium Status</div>
+                    <div className="text-[10px] text-[#49454f] opacity-70">${isPremium ? 'Active' : 'Not Active'}</div>
+                  </div>
+                  ${isPremium ? html`
+                    <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Pro</div>
+                  ` : html`
+                    <button onClick=${() => setIsPremiumModalOpen(true)} className="bg-[#6750a4] text-white px-4 py-2 rounded-full text-xs font-medium">Upgrade</button>
+                  `}
+                </div>
+                
+                <button onClick=${handleRestore} className="w-full text-center py-2 text-xs text-[#6750a4] font-medium">Restore Purchases</button>
+              </div>
+            </div>
+
             <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
               <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${CreditCard} size=${20} /> Allowance Mode</h3>
               <div className="space-y-4">
