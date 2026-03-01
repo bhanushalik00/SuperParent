@@ -7,7 +7,8 @@ class AdService {
     // Replace these with your actual Ad Unit IDs from AdMob
     this.adUnitIds = {
       android: {
-        banner: 'ca-app-pub-YOUR_ANDROID_BANNER_ID_HERE',
+        // Official Google Test ID for Banners: ca-app-pub-3940256099942544/6300978111
+        banner: 'ca-app-pub-3940256099942544/6300978111', 
         interstitial: 'ca-app-pub-YOUR_ANDROID_INTERSTITIAL_ID_HERE',
         rewarded: 'ca-app-pub-YOUR_ANDROID_REWARDED_ID_HERE'
       }
@@ -21,8 +22,8 @@ class AdService {
       if (Capacitor.isNativePlatform()) {
         await AdMob.initialize({
           requestTrackingAuthorization: true,
-          testingDevices: [], // Add your test device IDs here if needed
-          initializeForTesting: false, // Set to true during development to see test ads
+          testingDevices: [], 
+          initializeForTesting: true, // Set to true while your app is unpublished
         });
         this.isInitialized = true;
         console.log('AdMob initialized');

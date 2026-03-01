@@ -464,16 +464,16 @@ export default function App() {
     const initApp = async () => {
       await storage.init();
       
-      // Initialize RevenueCat
-      await billingService.init();
-      const isPrem = await billingService.checkPremiumStatus();
-      if (isPrem) {
-        setIsPremium(true);
-        await storage.set(PREMIUM_KEY, true);
-      }
+      // Initialize RevenueCat (Disabled for Clean Version)
+      // await billingService.init();
+      // const isPrem = await billingService.checkPremiumStatus();
+      // if (isPrem) {
+      //   setIsPremium(true);
+      //   await storage.set(PREMIUM_KEY, true);
+      // }
 
-      // Initialize AdMob
-      await adService.init();
+      // Initialize AdMob (Disabled for Clean Version)
+      // await adService.init();
 
       const [p, h, , lastReset, prem, themeKey, rew, allow, tourDone] = await Promise.all([
         storage.get(PROFILES_KEY, []),
@@ -659,18 +659,6 @@ export default function App() {
           <div className="space-y-6">
             <${Mascot} isOnline=${isOnline} state=${mascotState} onAnimationEnd=${() => setMascotState('IDLE')} />
             
-            ${!isPremium && html`
-              <div onClick=${() => setIsPremiumModalOpen(true)} className="bg-gradient-to-r from-[#6750a4] to-[#3d4975] p-6 rounded-[32px] shadow-sm cursor-pointer active:scale-95 transition-all text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Support SuperParent</h3>
-                    <p className="text-[10px] opacity-70 font-medium uppercase tracking-wider">Remove ads & support development</p>
-                  </div>
-                  <${Heart} size=${18} />
-                </div>
-              </div>
-            `}
-
             <div className="grid grid-cols-2 gap-4">
               <div style=${{ backgroundColor: currentTheme.primary }} className="rounded-[32px] p-6 text-white shadow-lg">
                 <div className="text-[10px] font-medium uppercase tracking-widest opacity-80 mb-2">Parents</div>
@@ -686,14 +674,11 @@ export default function App() {
                 `}
               </div>
             </div>
-
-            ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
           </div>
         `}
 
         ${activeTab === 'tasks' && html`
           <div className="space-y-4">
-            ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
             ${tasks.map(task => html`
               <div key=${task.id} className="bg-[#f7f2fa] rounded-[28px] p-6 border border-[#e7e0eb]/50">
                 <div className="flex justify-between items-start mb-4">
@@ -736,7 +721,6 @@ export default function App() {
 
         ${activeTab === 'shop' && html`
           <div className="space-y-4">
-             ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
              <div className="flex justify-between items-center mb-4 pt-2">
                <h2 className="text-xl font-medium text-[#1c1b1f]">Star Store</h2>
                <button onClick=${() => setIsRewardModalOpen(true)} className="p-2 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Plus} size=${20} /></button>
@@ -811,7 +795,6 @@ export default function App() {
                     </div>
                   </div>
                 `)}
-                ${!isPremium && html`<${AdBanner} theme=${currentTheme} />`}
               </div>
             </section>
 
@@ -834,21 +817,6 @@ export default function App() {
                 `)}
               </div>
             </section>
-
-            <div className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-[#6750a4] to-[#3d4975] p-8 text-white shadow-xl">
-              <div className="relative z-10">
-                <${Heart} className="mb-4 text-[#d3e3fd]" fill=${isPremium ? '#d3e3fd' : 'none'} />
-                <h3 className="text-2xl font-medium mb-2">${isPremium ? 'Thank You, Supporter!' : 'Support SuperParent'}</h3>
-                <p className="text-sm opacity-80 mb-6 leading-relaxed">
-                  ${isPremium 
-                    ? 'Your contribution keeps SuperParent free and accessible for families worldwide. You are helping us build a better future for kids.' 
-                    : 'We have moved to a community-supported model. Your support helps us maintain expert content and lets you enjoy an ad-free experience.'}
-                </p>
-                <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full rounded-full bg-white py-4 font-medium text-[#6750a4] shadow-lg active:scale-95 transition-all">
-                  ${isPremium ? 'View Support Options' : 'Support the App'}
-                </button>
-              </div>
-            </div>
           </div>
         `}
 
@@ -877,14 +845,6 @@ export default function App() {
             <div className="mt-8 pt-8 border-t border-[#e7e0eb] space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-[#79747e] px-2">App Support</h3>
               
-              <button onClick=${() => setIsPremiumModalOpen(true)} className="w-full flex items-center justify-between p-5 bg-[#f3edf7] rounded-[24px] text-[#6750a4] font-medium active:scale-[0.98] transition-all">
-                <div className="flex items-center gap-3">
-                  <${Heart} size=${20} fill=${isPremium ? '#6750a4' : 'none'} />
-                  <span>${isPremium ? 'Pro Supporter' : 'Support the App'}</span>
-                </div>
-                <${ChevronRight} size=${18} />
-              </button>
-
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick=${() => { setLegalType('tos'); setIsLegalModalOpen(true); }}
@@ -909,66 +869,6 @@ export default function App() {
 
         ${activeTab === 'settings' && html`
           <div className="space-y-4 pt-2">
-            <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
-              <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${Shield} size=${20} /> Subscription</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-2xl border border-[#e7e0eb]">
-                  <div>
-                    <div className="font-medium text-sm text-[#1c1b1f]">Premium Status</div>
-                    <div className="text-[10px] text-[#49454f] opacity-70">${isPremium ? 'Active' : 'Not Active'}</div>
-                  </div>
-                  ${isPremium ? html`
-                    <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Pro</div>
-                  ` : html`
-                    <button onClick=${() => setIsPremiumModalOpen(true)} className="bg-[#6750a4] text-white px-4 py-2 rounded-full text-xs font-medium">Upgrade</button>
-                  `}
-                </div>
-                
-                <button onClick=${handleRestore} className="w-full text-center py-2 text-xs text-[#6750a4] font-medium">Restore Purchases</button>
-              </div>
-            </div>
-
-            <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
-              <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${CreditCard} size=${20} /> Allowance Mode</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white/40 rounded-2xl border border-transparent">
-                  <div>
-                    <div className="font-medium text-sm text-[#1c1b1f]">Enable Allowance</div>
-                    <div className="text-[10px] text-[#49454f] opacity-70">Convert stars to virtual cash</div>
-                  </div>
-                  <button 
-                    onClick=${() => {
-                      if (!isPremium) { setIsPremiumModalOpen(true); return; }
-                      setAllowanceSettings(prev => ({ ...prev, enabled: !prev.enabled }));
-                    }}
-                    className=${`w-12 h-6 rounded-full transition-all relative ${allowanceSettings.enabled ? 'bg-[#6750a4]' : 'bg-gray-300'}`}
-                  >
-                    <div className=${`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${allowanceSettings.enabled ? 'left-7' : 'left-1'}`} />
-                  </button>
-                </div>
-                
-                ${allowanceSettings.enabled && html`
-                  <button 
-                    onClick=${() => setIsAllowanceModalOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-white shadow-sm rounded-2xl border border-[#e7e0eb]"
-                  >
-                    <span className="font-medium text-sm text-[#1c1b1f]">Configure Rates</span>
-                    <div className="flex items-center gap-2 text-[#6750a4] font-bold text-sm">
-                      ${allowanceSettings.ratio} Stars = ${allowanceSettings.currency}1.00
-                      <${ChevronRight} size=${16} />
-                    </div>
-                  </button>
-                `}
-                
-                ${!isPremium && html`
-                  <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
-                    <${Lock} size=${14} className="text-yellow-600" />
-                    <span className="text-[10px] font-medium text-yellow-700 uppercase tracking-wider">Pro Feature</span>
-                  </div>
-                `}
-              </div>
-            </div>
-
             <div className="bg-[#f7f2fa] rounded-[32px] p-6 border border-[#e7e0eb]">
               <h3 className="font-medium text-[#1c1b1f] flex items-center gap-2 mb-6"><${Palette} size=${20} /> Themes</h3>
               <div className="grid grid-cols-1 gap-2">
