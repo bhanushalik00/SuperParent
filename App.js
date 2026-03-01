@@ -6,13 +6,9 @@ import {
   AlertTriangle, ShoppingBag, Palette, ChevronRight, Check,
   BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield
 } from 'lucide-react';
-import { 
-  AdMob, 
-  BannerAdSize, 
-  BannerAdPosition 
-} from '@capacitor-community/admob';
 import { storage } from './services/storage.js';
 import { billingService } from './services/billingService.js';
+import { adService } from './services/adService.js';
 
 const html = htm.bind(React.createElement);
 
@@ -396,27 +392,12 @@ export default function App() {
   const [toast, setToast] = useState(null);
 
   const showBanner = React.useCallback(async () => {
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform() || isPremium) return;
-    try {
-      await AdMob.showBanner({
-        adId: ADMOB_BANNER_ID,
-        adSize: BannerAdSize.ADAPTIVE_BANNER,
-        position: BannerAdPosition.BOTTOM_CENTER,
-        margin: 0,
-        isTesting: true
-      });
-    } catch (e) {
-      console.error("AdMob Show Banner Error:", e);
-    }
+    if (isPremium) return;
+    await adService.showBanner();
   }, [isPremium]);
 
   const hideBanner = React.useCallback(async () => {
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
-    try {
-      await AdMob.hideBanner();
-    } catch (e) {
-      console.error("AdMob Hide Banner Error:", e);
-    }
+    await adService.hideBanner();
   }, []);
 
   const showToast = (message, icon = '✨') => {
@@ -492,17 +473,7 @@ export default function App() {
       }
 
       // Initialize AdMob
-      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        try {
-          await AdMob.initialize({
-            requestTrackingAuthorization: true,
-            testingDevices: ['2077ef9a63d2b398840261c8221a0c9b'],
-            initializeForTesting: true,
-          });
-        } catch (e) {
-          console.error("AdMob Init Error:", e);
-        }
-      }
+      await adService.init();
 
       const [p, h, , lastReset, prem, themeKey, rew, allow, tourDone] = await Promise.all([
         storage.get(PROFILES_KEY, []),
