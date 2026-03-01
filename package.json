@@ -6,10 +6,10 @@
   "author": "bhanushalik00",
   "main": "index.js",
   "dependencies": {
-    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor-community/admob": "^6.0.0",
     "@capacitor-community/sqlite": "^6.0.0",
     "@capacitor/core": "^6.0.0",
-    "@revenuecat/purchases-capacitor": "^12.2.1",
+    "@revenuecat/purchases-capacitor": "^9.0.0",
     "htm": "3.1.1",
     "lucide-react": "0.263.1",
     "react": "18.2.0",
