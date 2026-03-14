@@ -8,9 +8,9 @@ class AdService {
     this.adUnitIds = {
       android: {
         // Replace with your real Ad Unit IDs from AdMob
-        banner: 'YOUR_ANDROID_BANNER_ID_HERE', 
-        interstitial: 'YOUR_ANDROID_INTERSTITIAL_ID_HERE',
-        rewarded: 'YOUR_ANDROID_REWARDED_ID_HERE'
+        banner: 'ca-app-pub-8414725641734374/8285725953', 
+        interstitial: 'ca-app-pub-8414725641734374/9323744954',
+        rewarded: ''
       }
     };
   }
