@@ -7,10 +7,10 @@ class AdService {
     // Replace these with your actual Ad Unit IDs from AdMob
     this.adUnitIds = {
       android: {
-        // Official Google Test ID for Banners: ca-app-pub-3940256099942544/6300978111
-        banner: 'ca-app-pub-3940256099942544/6300978111', 
-        interstitial: 'ca-app-pub-YOUR_ANDROID_INTERSTITIAL_ID_HERE',
-        rewarded: 'ca-app-pub-YOUR_ANDROID_REWARDED_ID_HERE'
+        // Replace with your real Ad Unit IDs from AdMob
+        banner: 'YOUR_ANDROID_BANNER_ID_HERE', 
+        interstitial: 'YOUR_ANDROID_INTERSTITIAL_ID_HERE',
+        rewarded: 'YOUR_ANDROID_REWARDED_ID_HERE'
       }
     };
   }
@@ -23,7 +23,7 @@ class AdService {
         await AdMob.initialize({
           requestTrackingAuthorization: true,
           testingDevices: [], 
-          initializeForTesting: true, // Set to true while your app is unpublished
+          initializeForTesting: false, // Set to false for production
         });
         this.isInitialized = true;
         console.log('AdMob initialized');

@@ -13,7 +13,7 @@
   "plugins": {
     "AdMob": {
       "initializeOnBlur": true,
-      "androidAppId": "ca-app-pub-3940256099942544~3347511713"
+      "androidAppId": "YOUR_ANDROID_APP_ID_HERE"
     }
   }
 }

@@ -28,7 +28,7 @@
   "scripts": {
     "start": "npx serve .",
     "lint": "eslint .",
-    "build": "rm -rf www && mkdir -p www/services && cp index.html index.js App.js manifest.json sw.js metadata.json www/ && cp services/*.js www/services/",
+    "build": "rm -rf www && mkdir -p www/services && cp index.html index.js App.js privacy-policy.html manifest.json sw.js metadata.json www/ && cp services/*.js www/services/",
     "sync": "npm run build && npx cap sync android"
   }
 }

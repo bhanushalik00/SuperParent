@@ -1,6 +1,6 @@
 {
-  "name": "SuperParent: Practical Parenting App",
-  "description": "The ultimate family management tool for parents of kids 4+. Track chores, manage allowances, and build healthy habits with positive reinforcement.",
+  "name": "SuperParent: Reward Tracker",
+  "description": "The ultimate secure reward tracker for families. Build discipline without shouting, turn growth into fun, and make parenting joyful again.",
   "requestFramePermissions": [],
   "permissions": [
     "vibrate"

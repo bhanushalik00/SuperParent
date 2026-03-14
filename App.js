@@ -71,16 +71,16 @@ SuperParent is provided "as is" without warranties of any kind.
 
 const PRIVACY_POLICY = `
 1. DATA COLLECTION
-We store your family profiles, tasks, and history locally on your device. We do not sell your personal data.
+We store your family profiles, tasks, and history locally on your device. We do not sell your personal data. Most data remains on your device and is not transmitted to our servers unless specifically required for cloud features.
 
 2. THIRD-PARTY SERVICES
-We use RevenueCat and Google Play to process payments. These services may collect data according to their own policies.
+We use RevenueCat and Google Play to process payments. These services may collect data according to their own policies. We may also use Google AdMob for advertisements, which may collect device identifiers.
 
 3. SECURITY
-We take reasonable measures to protect your data, but no method of electronic storage is 100% secure.
+We take reasonable measures to protect your data, but no method of electronic storage is 100% secure. We use standard encryption and security practices provided by the operating system.
 
 4. CHILDREN'S PRIVACY
-This app is intended for use by parents. We do not knowingly collect data from children under 13 without parental consent.
+This app is intended for use by parents. We do not knowingly collect data from children under 13 without parental consent. Parents are responsible for the data entered regarding their children within the app.
 `;
 
 const PARENTING_TIPS = [
@@ -472,8 +472,8 @@ export default function App() {
       //   await storage.set(PREMIUM_KEY, true);
       // }
 
-      // Initialize AdMob (Disabled for Clean Version)
-      // await adService.init();
+      // Initialize AdMob
+      await adService.init();
 
       const [p, h, , lastReset, prem, themeKey, rew, allow, tourDone] = await Promise.all([
         storage.get(PROFILES_KEY, []),
@@ -512,9 +512,9 @@ export default function App() {
   useEffect(() => {
     if (isDbReady) {
       if (isPremium) {
-        // hideBanner(); (Disabled for Clean Version)
+        hideBanner();
       } else {
-        // showBanner(); (Disabled for Clean Version)
+        showBanner();
       }
     }
   }, [isPremium, isDbReady, showBanner, hideBanner]);
@@ -857,6 +857,19 @@ export default function App() {
                   className="p-4 bg-white border border-[#e7e0eb] rounded-[24px] text-xs font-medium text-[#49454f] flex items-center justify-center gap-2"
                 >
                   <${Shield} size=${14} /> Privacy
+                </button>
+              </div>
+
+              <div className="px-2">
+                <button 
+                  onClick=${() => {
+                    const url = 'https://bhanushalik00.github.io/SuperParent/privacy-policy.html';
+                    navigator.clipboard.writeText(url);
+                    showToast('Privacy link copied! 📋', '✨');
+                  }}
+                  className="w-full p-4 bg-[#f3edf7] border border-[#6750a4]/20 rounded-[24px] text-xs font-bold text-[#6750a4] flex items-center justify-center gap-2 uppercase tracking-widest"
+                >
+                  <${FileText} size=${14} /> Copy Play Store Privacy Link
                 </button>
               </div>
 
