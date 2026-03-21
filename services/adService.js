@@ -10,7 +10,7 @@ class AdService {
         // Replace with your real Ad Unit IDs from AdMob
         banner: 'ca-app-pub-8414725641734374/8285725953', 
         interstitial: 'ca-app-pub-8414725641734374/9323744954',
-        rewarded: ''
+        rewarded: 'YOUR_ANDROID_REWARDED_ID_HERE'
       }
     };
   }

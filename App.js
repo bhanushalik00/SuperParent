@@ -464,13 +464,13 @@ export default function App() {
     const initApp = async () => {
       await storage.init();
       
-      // Initialize RevenueCat (Disabled for Clean Version)
-      // await billingService.init();
-      // const isPrem = await billingService.checkPremiumStatus();
-      // if (isPrem) {
-      //   setIsPremium(true);
-      //   await storage.set(PREMIUM_KEY, true);
-      // }
+      // Initialize RevenueCat
+      await billingService.init();
+      const isPrem = await billingService.checkPremiumStatus();
+      if (isPrem) {
+        setIsPremium(true);
+        await storage.set(PREMIUM_KEY, true);
+      }
 
       // Initialize AdMob
       await adService.init();

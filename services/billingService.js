@@ -4,21 +4,19 @@ import { Capacitor } from '@capacitor/core';
 class BillingService {
   constructor() {
     this.isInitialized = false;
-    this.entitlementId = 'premium_access'; // Change this to your actual Entitlement ID from RevenueCat
+    this.entitlementId = 'YOUR_ENTITLEMENT_ID'; // TODO: Change this to your actual Entitlement ID from RevenueCat (e.g., 'premium')
   }
 
   async init() {
     if (this.isInitialized) return;
 
     try {
-      // Only proceed if running on a native platform (Android/iOS)
       if (Capacitor.isNativePlatform()) {
-        // Enable debug logs in development
         await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
 
         if (Capacitor.getPlatform() === 'android') {
           await Purchases.configure({ 
-            apiKey: "goog_your_android_api_key", // TODO: Get this from RevenueCat > Project Settings > API Keys
+            apiKey: "goog_YOUR_REVENUECAT_ANDROID_API_KEY", // TODO: Get this from RevenueCat > Project Settings > API Keys > Android
             appUserID: null 
           });
           this.isInitialized = true;
