@@ -7,7 +7,7 @@
   "main": "index.js",
   "dependencies": {
     "@capacitor-community/admob": "^6.0.0",
-    "@capacitor-community/sqlite": "^6.0.2",
+    "@capacitor-community/sqlite": "^8.1.0",
     "@capacitor/core": "^6.0.0",
     "@revenuecat/purchases-capacitor": "^9.0.0",
     "htm": "3.1.1",
