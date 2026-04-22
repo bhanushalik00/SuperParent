@@ -5,7 +5,7 @@ import {
   User, CheckCircle2, Star, Trash2, X, WifiOff, 
   AlertTriangle, ShoppingBag, Palette, ChevronRight, Check,
   BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield, Pencil,
-  Calendar, ChevronLeft
+  Calendar, ChevronLeft, Flame
 } from 'lucide-react';
 import { storage } from './services/storage.js';
 import { billingService } from './services/billingService.js';
@@ -560,6 +560,44 @@ export default function App() {
     showToast(`${profile.name} earned ${task.starValue} stars!`, '⭐');
   };
 
+  const getStreak = (taskId, profileId) => {
+    // Get all unique dates this task was completed by this profile
+    const completionDates = history
+      .filter(h => h.taskId === taskId && h.profileId === profileId)
+      .map(h => new Date(h.timestamp).toLocaleDateString('en-CA'))
+      .filter((value, index, self) => self.indexOf(value) === index) // Unique dates
+      .sort((a, b) => new Date(b) - new Date(a)); // Newest first
+
+    if (completionDates.length === 0) return 0;
+
+    const today = new Date().toLocaleDateString('en-CA');
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+    
+    let currentStreak = 0;
+    let expectedDate = today;
+
+    // If not completed today, check if it was completed yesterday to keep streak alive
+    if (completionDates[0] !== today && completionDates[0] !== yesterday) {
+      return 0;
+    }
+
+    if (completionDates[0] === yesterday && completionDates[0] !== today) {
+      expectedDate = yesterday;
+    }
+
+    for (const date of completionDates) {
+      if (date === expectedDate) {
+        currentStreak++;
+        const nextDate = new Date(new Date(expectedDate).getTime() - 86400000);
+        expectedDate = nextDate.toLocaleDateString('en-CA');
+      } else {
+        break;
+      }
+    }
+
+    return currentStreak;
+  };
+
   const handleRedeemReward = (rewardId, profileId) => {
     const reward = rewards.find(r => r.id === rewardId);
     const profile = profiles.find(p => p.id === profileId);
@@ -776,17 +814,25 @@ export default function App() {
                 <div className="flex flex-wrap gap-2 pt-2">
                   ${profiles.map(p => {
                     const done = isTaskCompleted(task.id, p.id, selectedDate);
+                    const streak = getStreak(task.id, p.id);
                     if (task.type === TaskType.INDIVIDUAL && p.role !== Role.CHILD) return null;
                     return html`
-                      <button 
-                        key=${p.id}
-                        onClick=${() => handleTaskCompletion(task.id, p.id)} 
-                        disabled=${done}
-                        className=${`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${done ? 'bg-gray-200 text-gray-500 cursor-default' : 'bg-[#6750a4] text-white shadow-md active:scale-95'}`}
-                      >
-                        <span className="text-lg">${done ? html`<${CheckCircle2} size=${16} />` : p.avatar}</span>
-                        ${p.name}
-                      </button>
+                      <div className="flex flex-col items-center gap-1">
+                        <button 
+                          key=${p.id}
+                          onClick=${() => handleTaskCompletion(task.id, p.id)} 
+                          disabled=${done}
+                          className=${`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${done ? 'bg-gray-200 text-gray-500 cursor-default' : 'bg-[#6750a4] text-white shadow-md active:scale-95'}`}
+                        >
+                          <span className="text-lg">${done ? html`<${CheckCircle2} size=${16} />` : p.avatar}</span>
+                          ${p.name}
+                        </button>
+                        ${streak > 1 && html`
+                          <div className="flex items-center gap-0.5 text-[10px] font-bold text-orange-600 animate-pulse">
+                            <${Flame} size=${10} fill="currentColor" /> ${streak} DAY STREAK
+                          </div>
+                        `}
+                      </div>
                     `;
                   })}
                 </div>
