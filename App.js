@@ -4,7 +4,8 @@ import {
   Plus, Settings, Home, List, Lock, UserPlus, 
   User, CheckCircle2, Star, Trash2, X, WifiOff, 
   AlertTriangle, ShoppingBag, Palette, ChevronRight, Check,
-  BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield
+  BookOpen, Lightbulb, Heart, CreditCard, FileText, Shield, Pencil,
+  Calendar, ChevronLeft
 } from 'lucide-react';
 import { storage } from './services/storage.js';
 import { billingService } from './services/billingService.js';
@@ -375,14 +376,17 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [mascotState, setMascotState] = useState('IDLE');
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
   
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalType, setLegalType] = useState('tos'); // 'tos' or 'privacy'
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const [selectedTip, setSelectedTip] = useState(null);
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [allowanceSettings, setAllowanceSettings] = useState({ enabled: false, currency: '$', ratio: 10 });
@@ -487,12 +491,7 @@ export default function App() {
         storage.get(TOUR_COMPLETED_KEY, false)
       ]);
       let t = await storage.get(TASKS_KEY, DEFAULT_TASKS);
-      const today = new Date().toLocaleDateString('en-CA');
-      if (lastReset !== today) {
-        t = t.map(task => ({ ...task, completedBy: [] }));
-        await storage.set(TASKS_KEY, t);
-        await storage.set(LAST_RESET_KEY, today);
-      }
+      
       setProfiles(p);
       setTasks(t);
       setHistory(h);
@@ -526,15 +525,37 @@ export default function App() {
   useEffect(() => { if (isDbReady) storage.set(REWARDS_KEY, rewards); }, [rewards, isDbReady]);
   useEffect(() => { if (isDbReady) storage.set(ALLOWANCE_KEY, allowanceSettings); }, [allowanceSettings, isDbReady]);
 
+  const isTaskCompleted = (taskId, profileId, date) => {
+    return history.some(h => 
+      h.taskId === taskId && 
+      h.profileId === profileId && 
+      new Date(h.timestamp).toLocaleDateString('en-CA') === date
+    );
+  };
+
   const handleTaskCompletion = (taskId, profileId) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task || task.completedBy.includes(profileId)) return;
+    if (!task || isTaskCompleted(taskId, profileId, selectedDate)) return;
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) return;
+    
     triggerHaptic([40, 30, 40]);
-    setHistory([{ id: Date.now().toString(), taskId, taskTitle: task.title, profileId, timestamp: Date.now(), starsEarned: task.starValue }, ...history]);
+    
+    // Create timestamp for the selected date at current time
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const completionDate = new Date();
+    completionDate.setFullYear(year, month - 1, day);
+
+    setHistory([{ 
+      id: Date.now().toString(), 
+      taskId, 
+      taskTitle: task.title, 
+      profileId, 
+      timestamp: completionDate.getTime(), 
+      starsEarned: task.starValue 
+    }, ...history]);
+    
     setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, stars: (p.stars || 0) + task.starValue } : p));
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completedBy: [...t.completedBy, profileId] } : t));
     setMascotState(task.type === TaskType.JOINT ? 'JOINT_SUCCESS' : profile.role === Role.PARENT ? 'PARENT_SUCCESS' : 'CHILD_SUCCESS');
     showToast(`${profile.name} earned ${task.starValue} stars!`, '⭐');
   };
@@ -547,6 +568,24 @@ export default function App() {
     setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, stars: p.stars - reward.cost } : p));
     setMascotState('REWARD_REDEEMED');
     showToast(`${profile.name} redeemed ${reward.title}!`, reward.icon || '🎁');
+  };
+
+  const handleUpdateTask = (updatedTask) => {
+    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    showToast('Task updated successfully!', '✅');
+  };
+
+  const handleDeleteTask = (taskId) => {
+    setTaskToDelete(taskId);
+  };
+
+  const confirmDeleteTask = () => {
+    if (!taskToDelete) return;
+    setTasks(prev => prev.filter(t => t.id !== taskToDelete));
+    setHistory(prev => prev.filter(h => h.taskId !== taskToDelete));
+    showToast('Task deleted.', '🗑️');
+    setTaskToDelete(null);
+    triggerHaptic(50);
   };
 
   const handleAddProfile = (name, role, avatar) => {
@@ -636,7 +675,7 @@ export default function App() {
         </div>
       `}
 
-      <div className="flex-1 overflow-y-auto pb-36 px-6">
+      <div className="flex-1 overflow-y-auto pb-52 px-6">
         <header className="pt-14 pb-8 flex justify-between items-start">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#6750a4] rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
@@ -679,8 +718,53 @@ export default function App() {
 
         ${activeTab === 'tasks' && html`
           <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-6 bg-white p-3 rounded-[24px] border border-[#e7e0eb] shadow-sm overflow-x-auto no-scrollbar">
+              ${[...Array(7)].map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                const dateKey = d.toLocaleDateString('en-CA');
+                const isSelected = selectedDate === dateKey;
+                const isToday = new Date().toLocaleDateString('en-CA') === dateKey;
+                return html`
+                  <button 
+                    key=${dateKey}
+                    onClick=${() => {
+                      setSelectedDate(dateKey);
+                      triggerHaptic(5);
+                    }}
+                    className=${`flex flex-col items-center min-w-[50px] py-3 rounded-2xl transition-all ${isSelected ? 'bg-[#6750a4] text-white shadow-md scale-105' : 'bg-[#f7f2fa] text-[#49454f]'}`}
+                  >
+                    <span className="text-[10px] font-bold uppercase opacity-70">${d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                    <span className="text-sm font-bold mt-1">${d.getDate()}</span>
+                    ${isToday && !isSelected && html`<div className="w-1 h-1 bg-[#6750a4] rounded-full mt-1"></div>`}
+                  </button>
+                `;
+              })}
+            </div>
+
             ${tasks.map(task => html`
-              <div key=${task.id} className="bg-[#f7f2fa] rounded-[28px] p-6 border border-[#e7e0eb]/50">
+              <div key=${task.id} className="bg-[#f7f2fa] rounded-[28px] p-6 border border-[#e7e0eb]/50 relative">
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <button 
+                    onClick=${() => {
+                      setEditingTask(task);
+                      setIsTaskModalOpen(true);
+                      triggerHaptic(10);
+                    }}
+                    className="p-2 bg-white rounded-full shadow-sm text-[#6750a4] active:bg-slate-100"
+                  >
+                    <${Pencil} size=${14} />
+                  </button>
+                  <button 
+                    onClick=${() => {
+                      triggerHaptic(50);
+                      handleDeleteTask(task.id);
+                    }}
+                    className="p-2 bg-white rounded-full shadow-sm text-red-500 active:bg-red-50"
+                  >
+                    <${Trash2} size=${14} />
+                  </button>
+                </div>
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <span className="text-[10px] font-medium uppercase tracking-widest bg-white/60 px-2 py-1 rounded-full text-[#49454f]">${task.type}</span>
@@ -691,14 +775,14 @@ export default function App() {
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
                   ${profiles.map(p => {
-                    const done = task.completedBy.includes(p.id);
+                    const done = isTaskCompleted(task.id, p.id, selectedDate);
                     if (task.type === TaskType.INDIVIDUAL && p.role !== Role.CHILD) return null;
                     return html`
                       <button 
                         key=${p.id}
                         onClick=${() => handleTaskCompletion(task.id, p.id)} 
                         disabled=${done}
-                        className=${`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${done ? 'bg-gray-200 text-gray-500' : 'bg-[#6750a4] text-white shadow-md active:scale-95'}`}
+                        className=${`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${done ? 'bg-gray-200 text-gray-500 cursor-default' : 'bg-[#6750a4] text-white shadow-md active:scale-95'}`}
                       >
                         <span className="text-lg">${done ? html`<${CheckCircle2} size=${16} />` : p.avatar}</span>
                         ${p.name}
@@ -712,7 +796,7 @@ export default function App() {
               onClick=${() => {
                 setIsTaskModalOpen(true);
               }}
-              className="fixed bottom-32 right-6 w-16 h-16 bg-[#d3e3fd] rounded-[24px] shadow-xl text-[#041e49] flex items-center justify-center active:scale-90 transition-all z-50 ripple"
+              className="fixed bottom-48 right-6 w-16 h-16 bg-[#d3e3fd] rounded-[24px] shadow-xl text-[#041e49] flex items-center justify-center active:scale-90 transition-all z-50 ripple"
             >
               <${Plus} size=${36} />
             </button>
@@ -962,7 +1046,7 @@ export default function App() {
 
       ${showTour && html`
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-end p-6 bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-500">
-          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-32 relative animate-in slide-in-from-bottom-10 duration-500">
+          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-52 relative animate-in slide-in-from-bottom-10 duration-500">
             <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-6xl drop-shadow-lg">🐶</div>
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-2xl font-medium text-[#1c1b1f] leading-tight">${tourSteps[tourStep].title}</h3>
@@ -1014,33 +1098,49 @@ export default function App() {
         </form>
       <//>
 
-      <${M3BottomSheet} isOpen=${isTaskModalOpen} onClose=${() => setIsTaskModalOpen(false)} theme=${currentTheme} title="New Goal">
+      <${M3BottomSheet} isOpen=${isTaskModalOpen} onClose=${() => {
+        setIsTaskModalOpen(false);
+        setEditingTask(null);
+      }} theme=${currentTheme} title=${editingTask ? 'Edit Goal' : 'New Goal'}>
         <form onSubmit=${(e) => {
           e.preventDefault();
           const fd = new FormData(e.target);
-          const newTask = {
-            id: Date.now().toString(),
+          const taskData = {
             title: fd.get('title'),
             description: fd.get('description'),
             type: fd.get('type'),
             starValue: parseInt(fd.get('stars')),
-            completedBy: [],
-            isRecurring: 'daily'
           };
-          setTasks([...tasks, newTask]);
+
+          if (editingTask) {
+            handleUpdateTask({ ...editingTask, ...taskData });
+          } else {
+            const newTask = {
+              id: Date.now().toString(),
+              ...taskData,
+              completedBy: [],
+              isRecurring: 'daily'
+            };
+            setTasks([...tasks, newTask]);
+            showToast('New goal created!', '✨');
+          }
+          
           setIsTaskModalOpen(false);
+          setEditingTask(null);
           triggerHaptic(20);
         }} className="space-y-4 pb-10">
-          <input name="title" required placeholder="Goal Title" className="w-full bg-white border border-[#e7e0eb] p-5 rounded-2xl text-lg outline-none" />
-          <textarea name="description" placeholder="Short description..." className="w-full bg-white border border-[#e7e0eb] p-4 rounded-2xl h-24 outline-none" />
+          <input name="title" required defaultValue=${editingTask?.title || ''} placeholder="Goal Title" className="w-full bg-white border border-[#e7e0eb] p-5 rounded-2xl text-lg outline-none" />
+          <textarea name="description" defaultValue=${editingTask?.description || ''} placeholder="Short description..." className="w-full bg-white border border-[#e7e0eb] p-4 rounded-2xl h-24 outline-none" />
           <div className="grid grid-cols-2 gap-4">
-            <select name="type" className="bg-white border border-[#e7e0eb] p-4 rounded-2xl font-medium outline-none">
+            <select name="type" defaultValue=${editingTask?.type || TaskType.INDIVIDUAL} className="bg-white border border-[#e7e0eb] p-4 rounded-2xl font-medium outline-none">
               <option value=${TaskType.INDIVIDUAL}>Child Task</option>
               <option value=${TaskType.JOINT}>Joint Goal</option>
             </select>
-            <input name="stars" type="number" defaultValue="5" className="bg-white border border-[#e7e0eb] p-4 rounded-2xl font-medium outline-none text-center" />
+            <input name="stars" type="number" defaultValue=${editingTask ? editingTask.starValue : "5"} className="bg-white border border-[#e7e0eb] p-4 rounded-2xl font-medium outline-none text-center" />
           </div>
-          <button type="submit" className="w-full bg-[#6750a4] text-white py-5 rounded-full font-medium text-lg shadow-lg ripple">Create Goal</button>
+          <button type="submit" className="w-full bg-[#6750a4] text-white py-5 rounded-full font-medium text-lg shadow-lg ripple">
+            ${editingTask ? 'Update Goal' : 'Create Goal'}
+          </button>
         </form>
       <//>
 
@@ -1173,6 +1273,22 @@ export default function App() {
           <div className="space-y-3">
              <button onClick=${handleFactoryReset} className="w-full bg-[#ba1a1a] text-white py-5 rounded-full font-medium shadow-lg ripple">YES, DELETE EVERYTHING</button>
              <button onClick=${() => setIsResetConfirmOpen(false)} className="w-full bg-[#f7f2fa] text-[#49454f] py-4 rounded-full font-medium">CANCEL</button>
+          </div>
+        </div>
+      <//>
+
+      <${M3BottomSheet} isOpen=${!!taskToDelete} onClose=${() => setTaskToDelete(null)} theme=${currentTheme} title="Delete Goal">
+        <div className="p-2 space-y-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-[#ba1a1a]">
+               <${Trash2} size=${40} />
+             </div>
+             <h3 className="text-xl font-medium text-[#1c1b1f]">Delete this goal?</h3>
+             <p className="text-[#49454f] text-sm font-medium opacity-80 leading-relaxed">This task will be removed from your list. History will also be cleaned up.</p>
+          </div>
+          <div className="space-y-3">
+             <button onClick=${confirmDeleteTask} className="w-full bg-[#ba1a1a] text-white py-5 rounded-full font-medium shadow-lg ripple">DELETE GOAL</button>
+             <button onClick=${() => setTaskToDelete(null)} className="w-full bg-[#f7f2fa] text-[#49454f] py-4 rounded-full font-medium">CANCEL</button>
           </div>
         </div>
       <//>
