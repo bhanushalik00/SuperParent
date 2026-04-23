@@ -50,7 +50,7 @@ class AdService {
       adId: this.adUnitIds.android.banner,
       adSize: BannerAdSize.BANNER,
       position: BannerAdPosition.BOTTOM_CENTER,
-      margin: 112, // Offset to sit above the bottom navigation bar (h-28 = 112px)
+      margin: 200, // Significantly increased margin to ensure it sits far above the bottom nav
       // isTesting: true // Uncomment for testing
     };
 

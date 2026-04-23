@@ -713,7 +713,7 @@ export default function App() {
         </div>
       `}
 
-      <div className="flex-1 overflow-y-auto pb-52 px-6">
+      <div className="flex-1 overflow-y-auto pb-[400px] px-6">
         <header className="pt-14 pb-8 flex justify-between items-start">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#6750a4] rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
@@ -842,7 +842,7 @@ export default function App() {
               onClick=${() => {
                 setIsTaskModalOpen(true);
               }}
-              className="fixed bottom-48 right-6 w-16 h-16 bg-[#d3e3fd] rounded-[24px] shadow-xl text-[#041e49] flex items-center justify-center active:scale-90 transition-all z-50 ripple"
+              className="fixed bottom-80 right-6 w-16 h-16 bg-[#d3e3fd] rounded-[24px] shadow-xl text-[#041e49] flex items-center justify-center active:scale-90 transition-all z-50 ripple"
             >
               <${Plus} size=${36} />
             </button>
@@ -1092,7 +1092,7 @@ export default function App() {
 
       ${showTour && html`
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-end p-6 bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-500">
-          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-52 relative animate-in slide-in-from-bottom-10 duration-500">
+          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-[320px] relative animate-in slide-in-from-bottom-10 duration-500">
             <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-6xl drop-shadow-lg">🐶</div>
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-2xl font-medium text-[#1c1b1f] leading-tight">${tourSteps[tourStep].title}</h3>
