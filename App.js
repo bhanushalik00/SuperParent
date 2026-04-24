@@ -308,16 +308,8 @@ const PremiumUpsell = ({ onClose, onUpgrade }) => {
 
   useEffect(() => {
     const fetchOfferings = async () => {
-      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-        const pkgs = await billingService.getOfferings();
-        setPackages(pkgs);
-      } else {
-        // Mock packages for web preview
-        setPackages([
-          { id: 'monthly', product: { priceString: '$0.99', title: 'Monthly Support' } },
-          { id: 'annual', product: { priceString: '$9.99', title: 'Annual Support' } }
-        ]);
-      }
+      const pkgs = await billingService.getOfferings();
+      setPackages(pkgs);
       setLoading(false);
     };
     fetchOfferings();
@@ -336,15 +328,22 @@ const PremiumUpsell = ({ onClose, onUpgrade }) => {
           <p className="text-sm opacity-80 mb-8 leading-relaxed">SuperParent is free for everyone! If you find it helpful, please consider a small donation to enjoy an ad-free experience and support expert content.</p>
           
           <div className="space-y-3 mb-8">
-            ${loading ? html`<div className="text-center py-4 opacity-50">Loading offerings...</div>` : packages.map(pkg => html`
-              <button key=${pkg.id} onClick=${() => onUpgrade(pkg)} className="w-full bg-white/10 hover:bg-white/20 p-5 rounded-2xl flex justify-between items-center transition-all border border-white/10 group">
-                <div className="text-left">
-                  <span className="block font-bold text-lg">${pkg.product.priceString}</span>
-                  <span className="text-[10px] opacity-60 uppercase tracking-wider">${pkg.product.title}</span>
+            ${loading ? html`<div className="text-center py-4 opacity-50">Loading offerings...</div>` : 
+              packages.length > 0 ? packages.map(pkg => html`
+                <button key=${pkg.id} onClick=${() => onUpgrade(pkg)} className="w-full bg-white/10 hover:bg-white/20 p-5 rounded-2xl flex justify-between items-center transition-all border border-white/10 group">
+                  <div className="text-left">
+                    <span className="block font-bold text-lg">${pkg.product.priceString}</span>
+                    <span className="text-[10px] opacity-60 uppercase tracking-wider">${pkg.product.title}</span>
+                  </div>
+                  <${ChevronRight} size=${20} className="opacity-40 group-hover:opacity-100 transition-all" />
+                </button>
+              `) : html`
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 text-center">
+                  <p className="text-sm opacity-80 mb-2">Offerings not found.</p>
+                  <p className="text-[10px] opacity-60">Check RevenueCat configuration and API keys.</p>
                 </div>
-                <${ChevronRight} size=${20} className="opacity-40 group-hover:opacity-100 transition-all" />
-              </button>
-            `)}
+              `
+            }
           </div>
 
           <div className="space-y-3 mb-8">
@@ -387,6 +386,7 @@ export default function App() {
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
+  const [rewardToDelete, setRewardToDelete] = useState(null);
   const [selectedTip, setSelectedTip] = useState(null);
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [allowanceSettings, setAllowanceSettings] = useState({ enabled: false, currency: '$', ratio: 10 });
@@ -598,6 +598,44 @@ export default function App() {
     return currentStreak;
   };
 
+  const getStreak = (taskId, profileId) => {
+    // Get all unique dates this task was completed by this profile
+    const completionDates = history
+      .filter(h => h.taskId === taskId && h.profileId === profileId)
+      .map(h => new Date(h.timestamp).toLocaleDateString('en-CA'))
+      .filter((value, index, self) => self.indexOf(value) === index) // Unique dates
+      .sort((a, b) => new Date(b) - new Date(a)); // Newest first
+
+    if (completionDates.length === 0) return 0;
+
+    const today = new Date().toLocaleDateString('en-CA');
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+    
+    let currentStreak = 0;
+    let expectedDate = today;
+
+    // If not completed today, check if it was completed yesterday to keep streak alive
+    if (completionDates[0] !== today && completionDates[0] !== yesterday) {
+      return 0;
+    }
+
+    if (completionDates[0] === yesterday && completionDates[0] !== today) {
+      expectedDate = yesterday;
+    }
+
+    for (const date of completionDates) {
+      if (date === expectedDate) {
+        currentStreak++;
+        const nextDate = new Date(new Date(expectedDate).getTime() - 86400000);
+        expectedDate = nextDate.toLocaleDateString('en-CA');
+      } else {
+        break;
+      }
+    }
+
+    return currentStreak;
+  };
+
   const handleRedeemReward = (rewardId, profileId) => {
     const reward = rewards.find(r => r.id === rewardId);
     const profile = profiles.find(p => p.id === profileId);
@@ -623,6 +661,18 @@ export default function App() {
     setHistory(prev => prev.filter(h => h.taskId !== taskToDelete));
     showToast('Task deleted.', '🗑️');
     setTaskToDelete(null);
+    triggerHaptic(50);
+  };
+
+  const handleDeleteReward = (rewardId) => {
+    setRewardToDelete(rewardId);
+  };
+
+  const confirmDeleteReward = () => {
+    if (!rewardToDelete) return;
+    setRewards(prev => prev.filter(r => r.id !== rewardToDelete));
+    showToast('Reward removed from store.', '🗑️');
+    setRewardToDelete(null);
     triggerHaptic(50);
   };
 
@@ -856,7 +906,16 @@ export default function App() {
                <button onClick=${() => setIsRewardModalOpen(true)} className="p-2 bg-[#e7e0eb] rounded-full text-[#49454f]"><${Plus} size=${20} /></button>
              </div>
              ${rewards.map(r => html`
-               <div key=${r.id} className="bg-[#f7f2fa] p-5 rounded-[32px] border border-[#e7e0eb] mb-4">
+               <div key=${r.id} className="bg-[#f7f2fa] p-5 rounded-[32px] border border-[#e7e0eb] mb-4 relative group">
+                 <button 
+                   onClick=${() => {
+                     triggerHaptic(50);
+                     handleDeleteReward(r.id);
+                   }}
+                   className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-sm text-red-500 active:bg-red-50 z-10"
+                 >
+                   <${Trash2} size=${14} />
+                 </button>
                  <div className="flex justify-between items-center">
                    <div className="flex items-center gap-4">
                       <div className="text-4xl">${r.icon}</div>
@@ -1057,7 +1116,7 @@ export default function App() {
         `}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#f3edf7]/95 backdrop-blur-md h-28 flex items-center justify-around px-2 border-t border-[#e7e0eb] z-[80] pb-6">
+      <nav className="fixed bottom-[50px] left-0 right-0 bg-[#f3edf7]/95 backdrop-blur-md h-28 flex items-center justify-around px-2 border-t border-[#e7e0eb] z-[80] pb-6">
         ${[
           { id: 'dashboard', icon: Home, label: 'Home' },
           { id: 'tasks', icon: List, label: 'Goals' },
@@ -1092,7 +1151,7 @@ export default function App() {
 
       ${showTour && html`
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-end p-6 bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-500">
-          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-[320px] relative animate-in slide-in-from-bottom-10 duration-500">
+          <div className="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl mb-[370px] relative animate-in slide-in-from-bottom-10 duration-500">
             <div className="absolute -top-12 left-1/2 -translate-x-1/2 text-6xl drop-shadow-lg">🐶</div>
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-2xl font-medium text-[#1c1b1f] leading-tight">${tourSteps[tourStep].title}</h3>
@@ -1335,6 +1394,22 @@ export default function App() {
           <div className="space-y-3">
              <button onClick=${confirmDeleteTask} className="w-full bg-[#ba1a1a] text-white py-5 rounded-full font-medium shadow-lg ripple">DELETE GOAL</button>
              <button onClick=${() => setTaskToDelete(null)} className="w-full bg-[#f7f2fa] text-[#49454f] py-4 rounded-full font-medium">CANCEL</button>
+          </div>
+        </div>
+      <//>
+
+      <${M3BottomSheet} isOpen=${!!rewardToDelete} onClose=${() => setRewardToDelete(null)} theme=${currentTheme} title="Delete Reward">
+        <div className="p-2 space-y-6">
+          <div className="flex flex-col items-center gap-4 text-center">
+             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-[#ba1a1a]">
+               <${Trash2} size=${40} />
+             </div>
+             <h3 className="text-xl font-medium text-[#1c1b1f]">Remove from store?</h3>
+             <p className="text-[#49454f] text-sm font-medium opacity-80 leading-relaxed">This item will no longer be available in the Star Store.</p>
+          </div>
+          <div className="space-y-3">
+             <button onClick=${confirmDeleteReward} className="w-full bg-[#ba1a1a] text-white py-5 rounded-full font-medium shadow-lg ripple">REMOVE REWARD</button>
+             <button onClick=${() => setRewardToDelete(null)} className="w-full bg-[#f7f2fa] text-[#49454f] py-4 rounded-full font-medium">CANCEL</button>
           </div>
         </div>
       <//>

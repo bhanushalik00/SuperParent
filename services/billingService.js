@@ -14,17 +14,26 @@ class BillingService {
       if (Capacitor.isNativePlatform()) {
         await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
 
+        let apiKey = '';
         if (Capacitor.getPlatform() === 'android') {
+          apiKey = "goog_WIeFdMjEmipmSkjVnVbheDuLStv"; // TODO: Get this from RevenueCat > Project Settings > API Keys > Android
+        } else if (Capacitor.getPlatform() === 'ios') {
+          apiKey = "appl_YOUR_REVENUECAT_IOS_API_KEY"; // TODO: Get this from RevenueCat > Project Settings > API Keys > App Store
+        }
+
+        if (apiKey) {
           await Purchases.configure({ 
-            apiKey: "goog_YOUR_REVENUECAT_ANDROID_API_KEY", // TODO: Get this from RevenueCat > Project Settings > API Keys > Android
+            apiKey: apiKey,
             appUserID: null 
           });
           this.isInitialized = true;
-          console.log('RevenueCat initialized for Android');
+          console.log(`RevenueCat initialized for ${Capacitor.getPlatform()}`);
+        } else {
+          console.warn(`RevenueCat: No API key for platform ${Capacitor.getPlatform()}`);
         }
       } else {
         console.log('RevenueCat: Web platform detected, using mock mode');
-        this.isInitialized = true; // Mark as initialized to avoid repeated attempts
+        this.isInitialized = true;
       }
     } catch (e) {
       console.error('Failed to initialize RevenueCat:', e);
@@ -33,6 +42,10 @@ class BillingService {
 
   async checkPremiumStatus() {
     if (!Capacitor.isNativePlatform()) return false;
+    if (!this.isInitialized) {
+      console.warn('RevenueCat: Attempted to check status before initialization');
+      await this.init();
+    }
     try {
       const customerInfo = await Purchases.getCustomerInfo();
       return !!customerInfo.entitlements.active[this.entitlementId];
@@ -50,11 +63,18 @@ class BillingService {
         { id: 'annual', product: { priceString: '$9.99', title: 'Annual Support' } }
       ];
     }
+    
+    if (!this.isInitialized) {
+      console.warn('RevenueCat: Attempted to fetch offerings before initialization');
+      await this.init();
+    }
+
     try {
       const offerings = await Purchases.getOfferings();
-      if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+      if (offerings.current !== null && offerings.current.availablePackages && offerings.current.availablePackages.length !== 0) {
         return offerings.current.availablePackages;
       }
+      console.log('RevenueCat: No current offerings available');
       return [];
     } catch (e) {
       console.error('Error fetching offerings:', e);
