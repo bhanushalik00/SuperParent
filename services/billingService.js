@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 class BillingService {
   constructor() {
     this.isInitialized = false;
-    this.entitlementId = 'YOUR_ENTITLEMENT_ID'; // TODO: Change this to your actual Entitlement ID from RevenueCat (e.g., 'premium')
+    this.entitlementId = 'premium'; // Important: Must match the Identifier in RevenueCat > Entitlements
   }
 
   async init() {
