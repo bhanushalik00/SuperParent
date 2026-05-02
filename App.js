@@ -598,44 +598,6 @@ export default function App() {
     return currentStreak;
   };
 
-  const getStreak = (taskId, profileId) => {
-    // Get all unique dates this task was completed by this profile
-    const completionDates = history
-      .filter(h => h.taskId === taskId && h.profileId === profileId)
-      .map(h => new Date(h.timestamp).toLocaleDateString('en-CA'))
-      .filter((value, index, self) => self.indexOf(value) === index) // Unique dates
-      .sort((a, b) => new Date(b) - new Date(a)); // Newest first
-
-    if (completionDates.length === 0) return 0;
-
-    const today = new Date().toLocaleDateString('en-CA');
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-    
-    let currentStreak = 0;
-    let expectedDate = today;
-
-    // If not completed today, check if it was completed yesterday to keep streak alive
-    if (completionDates[0] !== today && completionDates[0] !== yesterday) {
-      return 0;
-    }
-
-    if (completionDates[0] === yesterday && completionDates[0] !== today) {
-      expectedDate = yesterday;
-    }
-
-    for (const date of completionDates) {
-      if (date === expectedDate) {
-        currentStreak++;
-        const nextDate = new Date(new Date(expectedDate).getTime() - 86400000);
-        expectedDate = nextDate.toLocaleDateString('en-CA');
-      } else {
-        break;
-      }
-    }
-
-    return currentStreak;
-  };
-
   const handleRedeemReward = (rewardId, profileId) => {
     const reward = rewards.find(r => r.id === rewardId);
     const profile = profiles.find(p => p.id === profileId);
